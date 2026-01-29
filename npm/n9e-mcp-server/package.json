@@ -1,0 +1,40 @@
+{
+  "name": "@n9e/n9e-mcp-server",
+  "version": "0.0.0",
+  "description": "MCP server for Nightingale/Flashduty monitoring platform",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/n9e/n9e-mcp-server.git"
+  },
+  "homepage": "https://github.com/n9e/n9e-mcp-server",
+  "bugs": {
+    "url": "https://github.com/n9e/n9e-mcp-server/issues"
+  },
+  "keywords": [
+    "mcp",
+    "nightingale",
+    "flashduty",
+    "monitoring",
+    "alerting"
+  ],
+  "bin": {
+    "n9e-mcp-server": "bin.js"
+  },
+  "main": "index.js",
+  "files": [
+    "bin.js",
+    "index.js"
+  ],
+  "optionalDependencies": {
+    "@n9e/n9e-mcp-server-darwin-arm64": "0.0.0",
+    "@n9e/n9e-mcp-server-darwin-x64": "0.0.0",
+    "@n9e/n9e-mcp-server-linux-arm64": "0.0.0",
+    "@n9e/n9e-mcp-server-linux-x64": "0.0.0",
+    "@n9e/n9e-mcp-server-win32-arm64": "0.0.0",
+    "@n9e/n9e-mcp-server-win32-x64": "0.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

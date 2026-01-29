@@ -1,0 +1,17 @@
+{
+  "name": "@n9e/n9e-mcp-server-linux-arm64",
+  "version": "0.0.0",
+  "description": "n9e-mcp-server binary for linux-arm64",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/n9e/n9e-mcp-server.git"
+  },
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "main": "index.js",
+  "files": [
+    "n9e-mcp-server",
+    "index.js"
+  ]
+}

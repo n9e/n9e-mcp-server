@@ -1,0 +1,150 @@
+# Nightingale MCP Server
+
+[English](README.md) | 中文
+
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+
+[Nightingale](https://github.com/ccfos/nightingale) 监控系统的 MCP（Model Context Protocol）服务器。该服务器允许 AI 助手通过自然语言与夜莺 API 交互，实现告警管理、监控和可观测性任务。
+
+## 主要用途
+
+- **告警管理**：查询活跃告警和历史告警，查看告警规则和订阅
+- **目标监控**：浏览和搜索被监控的主机/目标，分析目标状态
+- **事件响应**：创建和管理告警屏蔽/静默规则、通知规则和事件流水线
+- **团队协作**：查询用户、团队和业务组
+
+## 快速开始
+
+### 获取 API Token
+
+1. 登录夜莺 Web 界面
+2. 进入 **个人设置** > **个人信息** > **Token 管理**
+3. 创建一个具有适当权限的新 Token
+
+![image-20260205172354525](./doc/img/image-20260205172354525.png)
+
+> **安全提示**：请妥善保管 API Token。切勿将 Token 提交到版本控制系统。请使用环境变量或安全的密钥管理系统。
+
+## 与 MCP 客户端配合使用
+
+### OpenCode
+
+在 `~/.opencode/mcp.json` 中添加：
+
+```json
+{
+  "mcpServers": {
+    "nightingale": {
+      "command": "npx",
+      "args": ["-y", "@n9e/n9e-mcp-server", "stdio"],
+      "env": {
+        "N9E_TOKEN": "your-api-token",
+        "N9E_BASE_URL": "http://your-n9e-server:17000"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+在 `~/.cursor/mcp.json` 中添加：
+
+```json
+{
+  "mcpServers": {
+    "nightingale": {
+      "command": "npx",
+      "args": ["-y", "@n9e/n9e-mcp-server", "stdio"],
+      "env": {
+        "N9E_TOKEN": "your-api-token",
+        "N9E_BASE_URL": "http://your-n9e-server:17000"
+      }
+    }
+  }
+}
+```
+
+## 安装与配置
+
+### 安装
+
+直接使用 npx（无需安装）：
+
+```bash
+npx -y @n9e/n9e-mcp-server stdio
+```
+
+或全局安装：
+
+```bash
+npm install -g @n9e/n9e-mcp-server
+```
+
+其他方式：从 [Releases](https://github.com/n9e/n9e-mcp-server/releases) 下载预编译二进制文件，或通过 `make build` 从源码编译。
+
+### 环境变量
+
+| 变量 | 命令行参数 | 说明 | 默认值 |
+|-----|-----------|------|-------|
+| `N9E_TOKEN` | `--token` | 夜莺 API Token（必需） | - |
+| `N9E_BASE_URL` | `--base-url` | 夜莺 API 地址 | `http://localhost:17000` |
+| `N9E_READ_ONLY` | `--read-only` | 禁用写操作 | `false` |
+| `N9E_TOOLSETS` | `--toolsets` | 启用的工具集（逗号分隔） | `all` |
+| `N9E_MCP_LOG_LEVEL` | - | 日志级别：`debug`、`info`、`warn`、`error` | `info` |
+
+## 可用工具
+
+| 工具集 | 工具 | 说明 |
+|-------|------|------|
+| alerts | `list_active_alerts` | 列出当前活跃告警，支持过滤条件 |
+| alerts | `get_active_alert` | 根据事件 ID 获取活跃告警详情 |
+| alerts | `list_history_alerts` | 列出历史告警，支持过滤条件 |
+| alerts | `get_history_alert` | 获取历史告警详情 |
+| alerts | `list_alert_rules` | 列出业务组的告警规则 |
+| alerts | `get_alert_rule` | 获取告警规则详情 |
+| targets | `list_targets` | 列出被监控主机/目标，支持过滤条件 |
+| datasource | `list_datasources` | 列出所有可用数据源 |
+| mutes | `list_mutes` | 列出业务组的告警屏蔽规则 |
+| mutes | `get_mute` | 获取告警屏蔽规则详情 |
+| mutes | `create_mute` | 创建告警屏蔽规则 |
+| mutes | `update_mute` | 更新告警屏蔽规则 |
+| notify_rules | `list_notify_rules` | 列出所有通知规则 |
+| notify_rules | `get_notify_rule` | 获取通知规则详情 |
+| alert_subscribes | `list_alert_subscribes` | 列出业务组的告警订阅 |
+| alert_subscribes | `list_alert_subscribes_by_gids` | 列出多个业务组的订阅 |
+| alert_subscribes | `get_alert_subscribe` | 获取订阅详情 |
+| event_pipelines | `list_event_pipelines` | 列出所有事件流水线 |
+| event_pipelines | `get_event_pipeline` | 获取事件流水线详情 |
+| event_pipelines | `list_event_pipeline_executions` | 列出指定流水线的执行记录 |
+| event_pipelines | `list_all_event_pipeline_executions` | 列出所有流水线的执行记录 |
+| event_pipelines | `get_event_pipeline_execution` | 获取执行记录详情 |
+| users | `list_users` | 列出用户，支持过滤条件 |
+| users | `get_user` | 获取用户详情 |
+| users | `list_user_groups` | 列出用户组/团队 |
+| users | `get_user_group` | 获取用户组详情（包含成员） |
+| busi_groups | `list_busi_groups` | 列出当前用户可访问的业务组 |
+
+## 示例提示词
+
+配置完成后，您可以使用自然语言与夜莺交互：
+
+- "显示过去 24 小时内所有紧急告警"
+- "当前有哪些告警正在触发？"
+- "列出所有离线超过 5 分钟的监控目标"
+- "业务组 1 配置了哪些告警规则？"
+- "由于维护原因，为 service=api 的告警创建一个 2 小时的屏蔽规则"
+- "查看事件流水线的执行历史"
+- "运维团队有哪些成员？"
+
+## 开源协议
+
+Apache License 2.0
+
+## 相关项目
+
+- [Nightingale](https://github.com/ccfos/nightingale) - 企业级云原生监控系统
+- [MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk) - 官方 MCP Go SDK
+- [MCP 规范](https://modelcontextprotocol.io/) - Model Context Protocol 规范

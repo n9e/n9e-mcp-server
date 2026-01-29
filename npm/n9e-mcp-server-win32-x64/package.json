@@ -1,0 +1,17 @@
+{
+  "name": "@n9e/n9e-mcp-server-win32-x64",
+  "version": "0.0.0",
+  "description": "n9e-mcp-server binary for win32-x64",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/n9e/n9e-mcp-server.git"
+  },
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "main": "index.js",
+  "files": [
+    "n9e-mcp-server.exe",
+    "index.js"
+  ]
+}
