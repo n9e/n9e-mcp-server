@@ -117,23 +117,7 @@ Once configured, you can interact with Nightingale using natural language:
 - "Show me the event pipeline execution history"
 - "Who are the members of the ops team?"
 
-## Installation & Configuration
-
-### Install
-
-Use directly with npx (no installation required):
-
-```bash
-npx -y @n9e/n9e-mcp-server stdio
-```
-
-Or install globally:
-
-```bash
-npm install -g @n9e/n9e-mcp-server
-```
-
-Alternative: Download pre-built binaries from [Releases](https://github.com/n9e/n9e-mcp-server/releases) or build from source with `make build`.
+## Configuration
 
 ### Environment Variables
 
@@ -143,7 +127,6 @@ Alternative: Download pre-built binaries from [Releases](https://github.com/n9e/
 | `N9E_BASE_URL` | `--base-url` | Nightingale API base URL | `http://localhost:17000` |
 | `N9E_READ_ONLY` | `--read-only` | Disable write operations | `false` |
 | `N9E_TOOLSETS` | `--toolsets` | Enabled toolsets (comma-separated) | `all` |
-| `N9E_MCP_LOG_LEVEL` | - | Log level: `debug`, `info`, `warn`, `error` | `info` |
 
 ## License
 

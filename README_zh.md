@@ -117,23 +117,7 @@
 - "查看事件流水线的执行历史"
 - "运维团队有哪些成员？"
 
-## 安装与配置
-
-### 安装
-
-直接使用 npx（无需安装）：
-
-```bash
-npx -y @n9e/n9e-mcp-server stdio
-```
-
-或全局安装：
-
-```bash
-npm install -g @n9e/n9e-mcp-server
-```
-
-其他方式：从 [Releases](https://github.com/n9e/n9e-mcp-server/releases) 下载预编译二进制文件，或通过 `make build` 从源码编译。
+## 配置
 
 ### 环境变量
 
@@ -143,7 +127,6 @@ npm install -g @n9e/n9e-mcp-server
 | `N9E_BASE_URL` | `--base-url` | 夜莺 API 地址 | `http://localhost:17000` |
 | `N9E_READ_ONLY` | `--read-only` | 禁用写操作 | `false` |
 | `N9E_TOOLSETS` | `--toolsets` | 启用的工具集（逗号分隔） | `all` |
-| `N9E_MCP_LOG_LEVEL` | - | 日志级别：`debug`、`info`、`warn`、`error` | `info` |
 
 ## 开源协议
 
