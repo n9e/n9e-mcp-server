@@ -10,7 +10,7 @@ An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfo
 
 - **Alert Management**: Query active and historical alerts, view alert rules and subscriptions
 - **Target Monitoring**: Browse and search monitored hosts/targets, analyze target status
-- **Incident Response**: Create and manage alert mutes/silences, notification rules, and event pipelines
+- **Incident Response**: Create and manage alert mutes, notification rules, and event pipelines
 - **Team Collaboration**: Query users, teams, and business groups
 
 ## Quick Start

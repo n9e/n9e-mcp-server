@@ -16,7 +16,7 @@ An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfo
 
 - **Alert Management**: Query active and historical alerts, view alert rules and subscriptions
 - **Target Monitoring**: Browse and search monitored hosts/targets, analyze target status
-- **Incident Response**: Create and manage alert mutes/silences, notification rules, and event pipelines
+- **Incident Response**: Create and manage alert mutes, notification rules, and event pipelines
 - **Team Collaboration**: Query users, teams, and business groups
 
 ## Quick Start
@@ -85,7 +85,7 @@ Add to your `~/.cursor/mcp.json`:
 | alerts | `get_alert_rule` | Get details of a specific alert rule |
 | targets | `list_targets` | List monitored hosts/targets with optional filters |
 | datasource | `list_datasources` | List all available datasources |
-| mutes | `list_mutes` | List alert mutes/silences for a business group |
+| mutes | `list_mutes` | List alert mutes for a business group |
 | mutes | `get_mute` | Get details of a specific alert mute |
 | mutes | `create_mute` | Create a new alert mute/silence rule |
 | mutes | `update_mute` | Update an existing alert mute/silence rule |
