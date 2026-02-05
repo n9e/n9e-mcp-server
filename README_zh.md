@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-[Nightingale](https://github.com/ccfos/nightingale) 监控系统的 MCP（Model Context Protocol）服务器。该服务器允许 AI 助手通过自然语言与夜莺 API 交互，实现告警管理、监控和可观测性任务。
+[Nightingale](https://github.com/ccfos/nightingale) 的 MCP Server。此 MCP Server 允许 AI 助手通过自然语言与夜莺 API 交互，实现告警管理、监控和可观测性任务。
 
 ## 兼容性
 
