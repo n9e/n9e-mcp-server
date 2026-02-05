@@ -1,7 +1,7 @@
 {
   "name": "@n9e/n9e-mcp-server",
   "version": "0.0.0",
-  "description": "MCP server for Nightingale/Flashduty monitoring platform",
+  "description": "MCP server for Nightingale monitoring platform",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -14,7 +14,6 @@
   "keywords": [
     "mcp",
     "nightingale",
-    "flashduty",
     "monitoring",
     "alerting"
   ],
