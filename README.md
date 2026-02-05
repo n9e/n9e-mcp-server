@@ -31,9 +31,9 @@ An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfo
 
 > **Security Note**: Store your API token securely. Never commit tokens to version control. Use environment variables or secure secret management.
 
-## 2. Configure MCP Client
+### 2. Configure MCP Client
 
-### OpenCode
+#### OpenCode
 
 Add to your `~/.opencode/mcp.json`:
 
@@ -52,7 +52,7 @@ Add to your `~/.opencode/mcp.json`:
 }
 ```
 
-### Cursor
+#### Cursor
 
 Add to your `~/.cursor/mcp.json`:
 
@@ -71,7 +71,7 @@ Add to your `~/.cursor/mcp.json`:
 }
 ```
 
-## 3. Restart OpenCode or Other Client Processes to Use
+### 3. Restart OpenCode or Other Client Processes to Use
 
 ## Available Tools
 

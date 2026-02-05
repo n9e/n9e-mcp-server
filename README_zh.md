@@ -31,9 +31,9 @@
 
 > **安全提示**：请妥善保管 API Token。切勿将 Token 提交到版本控制系统。请使用环境变量或安全的密钥管理系统。
 
-## 2.与 MCP 客户端配合使用
+### 2.与 MCP 客户端配合使用
 
-### OpenCode
+#### OpenCode
 
 在 `~/.opencode/mcp.json` 中添加：
 
@@ -52,7 +52,7 @@
 }
 ```
 
-### Cursor
+#### Cursor
 
 在 `~/.cursor/mcp.json` 中添加：
 
@@ -71,7 +71,7 @@
 }
 ```
 
-## 3.重启 OpenCode 等进程，即可使用
+### 3.重启 OpenCode 等进程，即可使用
 
 ## 可用工具
 
