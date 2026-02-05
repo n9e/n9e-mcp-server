@@ -15,9 +15,9 @@ An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfo
 - **Incident Response**: Create and manage alert mutes/silences, notification rules, and event pipelines
 - **Team Collaboration**: Query users, teams, and business groups
 
-## Getting Started
+## Quick Start
 
-### Getting an API Token
+### 1. Get an API Token
 
 1. Log in to your Nightingale web interface
 2. Navigate to **Personal Settings** > **Profile** > **Token Management**
@@ -27,7 +27,7 @@ An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfo
 
 > **Security Note**: Store your API token securely. Never commit tokens to version control. Use environment variables or secure secret management.
 
-## Usage with MCP Clients
+## 2. Configure MCP Client
 
 ### OpenCode
 
@@ -67,34 +67,7 @@ Add to your `~/.cursor/mcp.json`:
 }
 ```
 
-## Installation & Configuration
-
-### Install
-
-Use directly with npx (no installation required):
-
-```bash
-npx -y @n9e/n9e-mcp-server stdio
-```
-
-Or install globally:
-
-```bash
-npm install -g @n9e/n9e-mcp-server
-```
-
-Alternative: Download pre-built binaries from [Releases](https://github.com/n9e/n9e-mcp-server/releases) or build from source with `make build`.
-
-### Environment Variables
-
-| Variable | Flag | Description | Default |
-|----------|------|-------------|---------|
-| `N9E_TOKEN` | `--token` | Nightingale API token (required) | - |
-| `N9E_BASE_URL` | `--base-url` | Nightingale API base URL | `http://localhost:17000` |
-| `N9E_READ_ONLY` | `--read-only` | Disable write operations | `false` |
-| `N9E_TOOLSETS` | `--toolsets` | Enabled toolsets (comma-separated) | `all` |
-| `N9E_MCP_LOG_LEVEL` | - | Log level: `debug`, `info`, `warn`, `error` | `info` |
-
+## 3. Restart OpenCode or Other Client Processes to Use
 
 ## Available Tools
 
@@ -139,6 +112,34 @@ Once configured, you can interact with Nightingale using natural language:
 - "Create a mute rule for service=api alerts for the next 2 hours due to maintenance"
 - "Show me the event pipeline execution history"
 - "Who are the members of the ops team?"
+
+## Installation & Configuration
+
+### Install
+
+Use directly with npx (no installation required):
+
+```bash
+npx -y @n9e/n9e-mcp-server stdio
+```
+
+Or install globally:
+
+```bash
+npm install -g @n9e/n9e-mcp-server
+```
+
+Alternative: Download pre-built binaries from [Releases](https://github.com/n9e/n9e-mcp-server/releases) or build from source with `make build`.
+
+### Environment Variables
+
+| Variable | Flag | Description | Default |
+|----------|------|-------------|---------|
+| `N9E_TOKEN` | `--token` | Nightingale API token (required) | - |
+| `N9E_BASE_URL` | `--base-url` | Nightingale API base URL | `http://localhost:17000` |
+| `N9E_READ_ONLY` | `--read-only` | Disable write operations | `false` |
+| `N9E_TOOLSETS` | `--toolsets` | Enabled toolsets (comma-separated) | `all` |
+| `N9E_MCP_LOG_LEVEL` | - | Log level: `debug`, `info`, `warn`, `error` | `info` |
 
 ## License
 

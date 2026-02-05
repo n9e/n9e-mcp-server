@@ -17,7 +17,7 @@
 
 ## 快速开始
 
-### 获取 API Token
+### 1.获取 API Token
 
 1. 登录夜莺 Web 界面
 2. 进入 **个人设置** > **个人信息** > **Token 管理**
@@ -27,7 +27,7 @@
 
 > **安全提示**：请妥善保管 API Token。切勿将 Token 提交到版本控制系统。请使用环境变量或安全的密钥管理系统。
 
-## 与 MCP 客户端配合使用
+## 2.与 MCP 客户端配合使用
 
 ### OpenCode
 
@@ -67,33 +67,7 @@
 }
 ```
 
-## 安装与配置
-
-### 安装
-
-直接使用 npx（无需安装）：
-
-```bash
-npx -y @n9e/n9e-mcp-server stdio
-```
-
-或全局安装：
-
-```bash
-npm install -g @n9e/n9e-mcp-server
-```
-
-其他方式：从 [Releases](https://github.com/n9e/n9e-mcp-server/releases) 下载预编译二进制文件，或通过 `make build` 从源码编译。
-
-### 环境变量
-
-| 变量 | 命令行参数 | 说明 | 默认值 |
-|-----|-----------|------|-------|
-| `N9E_TOKEN` | `--token` | 夜莺 API Token（必需） | - |
-| `N9E_BASE_URL` | `--base-url` | 夜莺 API 地址 | `http://localhost:17000` |
-| `N9E_READ_ONLY` | `--read-only` | 禁用写操作 | `false` |
-| `N9E_TOOLSETS` | `--toolsets` | 启用的工具集（逗号分隔） | `all` |
-| `N9E_MCP_LOG_LEVEL` | - | 日志级别：`debug`、`info`、`warn`、`error` | `info` |
+## 3.重启 OpenCode 等进程，即可使用
 
 ## 可用工具
 
@@ -138,6 +112,34 @@ npm install -g @n9e/n9e-mcp-server
 - "由于维护原因，为 service=api 的告警创建一个 2 小时的屏蔽规则"
 - "查看事件流水线的执行历史"
 - "运维团队有哪些成员？"
+
+## 安装与配置
+
+### 安装
+
+直接使用 npx（无需安装）：
+
+```bash
+npx -y @n9e/n9e-mcp-server stdio
+```
+
+或全局安装：
+
+```bash
+npm install -g @n9e/n9e-mcp-server
+```
+
+其他方式：从 [Releases](https://github.com/n9e/n9e-mcp-server/releases) 下载预编译二进制文件，或通过 `make build` 从源码编译。
+
+### 环境变量
+
+| 变量 | 命令行参数 | 说明 | 默认值 |
+|-----|-----------|------|-------|
+| `N9E_TOKEN` | `--token` | 夜莺 API Token（必需） | - |
+| `N9E_BASE_URL` | `--base-url` | 夜莺 API 地址 | `http://localhost:17000` |
+| `N9E_READ_ONLY` | `--read-only` | 禁用写操作 | `false` |
+| `N9E_TOOLSETS` | `--toolsets` | 启用的工具集（逗号分隔） | `all` |
+| `N9E_MCP_LOG_LEVEL` | - | 日志级别：`debug`、`info`、`warn`、`error` | `info` |
 
 ## 开源协议
 
