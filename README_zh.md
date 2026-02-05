@@ -8,6 +8,10 @@
 
 [Nightingale](https://github.com/ccfos/nightingale) 监控系统的 MCP（Model Context Protocol）服务器。该服务器允许 AI 助手通过自然语言与夜莺 API 交互，实现告警管理、监控和可观测性任务。
 
+## 兼容性
+
+- **Nightingale**：v8.0.0+
+
 ## 主要用途
 
 - **告警管理**：查询活跃告警和历史告警，查看告警规则和订阅

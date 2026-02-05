@@ -8,6 +8,10 @@ English | [中文](README_zh.md)
 
 An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfos/nightingale) monitoring system. This server enables AI assistants to interact with Nightingale APIs for alert management, monitoring, and observability tasks through natural language.
 
+## Compatibility
+
+- **Nightingale**: v8.0.0+
+
 ## Key Use Cases
 
 - **Alert Management**: Query active and historical alerts, view alert rules and subscriptions
