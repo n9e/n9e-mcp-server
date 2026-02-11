@@ -38,6 +38,10 @@ func NewMCPServer(cfg ServerConfig) (*mcp.Server, error) {
 		Name:    "n9e-mcp-server",
 		Version: cfg.Version,
 	}, &mcp.ServerOptions{
+		Instructions: "Nightingale (n9e) monitoring MCP Server. Provides alert rule management, " +
+			"active/history alert querying, alert mute/silence management, notification rules, " +
+			"alert subscriptions, user/team management, monitored target management, " +
+			"datasource management, business group management, and event pipeline/workflow management.",
 		Logger: slog.Default(),
 	})
 
