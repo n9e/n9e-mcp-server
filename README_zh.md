@@ -113,6 +113,30 @@
 | `N9E_READ_ONLY` | `--read-only` | 禁用写操作 | `false` |
 | `N9E_TOOLSETS` | `--toolsets` | 启用的工具集（逗号分隔） | `all` |
 
+### 工具集选择
+
+默认启用所有工具集。可以通过 `--toolsets` 参数或 `N9E_TOOLSETS` 环境变量只启用需要的工具集，减少暴露给 AI 助手的工具数量，节省上下文窗口的 token 消耗。
+
+可用工具集：`alerts`、`targets`、`datasource`、`mutes`、`busi_groups`、`notify_rules`、`alert_subscribes`、`event_pipelines`、`users`
+
+例如，只启用告警和监控目标相关工具：
+
+```json
+{
+  "mcpServers": {
+    "nightingale": {
+      "command": "npx",
+      "args": ["-y", "@n9e/n9e-mcp-server", "stdio"],
+      "env": {
+        "N9E_TOKEN": "your-api-token",
+        "N9E_BASE_URL": "http://your-n9e-server:17000",
+        "N9E_TOOLSETS": "alerts,targets"
+      }
+    }
+  }
+}
+```
+
 ## 开源协议
 
 Apache License 2.0

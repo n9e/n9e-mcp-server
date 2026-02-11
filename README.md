@@ -114,6 +114,30 @@ Once configured, you can interact with Nightingale using natural language:
 | `N9E_READ_ONLY` | `--read-only` | Disable write operations | `false` |
 | `N9E_TOOLSETS` | `--toolsets` | Enabled toolsets (comma-separated) | `all` |
 
+### Toolsets
+
+By default, all toolsets are enabled. You can use the `--toolsets` flag or `N9E_TOOLSETS` environment variable to enable only the toolsets you need, reducing the number of tools exposed to the AI assistant and saving context window tokens.
+
+Available toolsets: `alerts`, `targets`, `datasource`, `mutes`, `busi_groups`, `notify_rules`, `alert_subscribes`, `event_pipelines`, `users`
+
+For example, to enable only alert and target related tools:
+
+```json
+{
+  "mcpServers": {
+    "nightingale": {
+      "command": "npx",
+      "args": ["-y", "@n9e/n9e-mcp-server", "stdio"],
+      "env": {
+        "N9E_TOKEN": "your-api-token",
+        "N9E_BASE_URL": "http://your-n9e-server:17000",
+        "N9E_TOOLSETS": "alerts,targets"
+      }
+    }
+  }
+}
+```
+
 ## License
 
 Apache License 2.0
