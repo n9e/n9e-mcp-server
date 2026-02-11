@@ -33,25 +33,6 @@
 
 ### 2.与 MCP 客户端配合使用
 
-#### OpenCode
-
-在 `~/.opencode/mcp.json` 中添加：
-
-```json
-{
-  "mcpServers": {
-    "nightingale": {
-      "command": "npx",
-      "args": ["-y", "@n9e/n9e-mcp-server", "stdio"],
-      "env": {
-        "N9E_TOKEN": "your-api-token",
-        "N9E_BASE_URL": "http://your-n9e-server:17000"
-      }
-    }
-  }
-}
-```
-
 #### Cursor
 
 在 `~/.cursor/mcp.json` 中添加：
