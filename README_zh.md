@@ -22,10 +22,14 @@
 ## 快速开始
 
 ### 1.获取 API Token
-
-1. 登录夜莺 Web 界面
-2. 进入 **个人设置** > **个人信息** > **Token 管理**
-3. 创建一个具有适当权限的新 Token
+1. 确保在 config.toml 中，启用了 HTTP.TokenAuth
+  ```toml
+    [HTTP.TokenAuth]
+    Enable = true
+  ```
+2. 登录夜莺 Web 界面
+3. 进入 **个人设置** > **个人信息** > **Token 管理**
+4. 创建一个具有适当权限的新 Token
 
 ![image-20260205172354525](./doc/img/image-20260205172354525.png)
 

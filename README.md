@@ -23,9 +23,14 @@ An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfo
 
 ### 1. Get an API Token
 
-1. Log in to your Nightingale web interface
-2. Navigate to **Personal Settings** > **Profile** > **Token Management**
-3. Create a new token with appropriate permissions
+1. Make sure `HTTP.TokenAuth` is enabled in `config.toml`:
+  ```toml
+    [HTTP.TokenAuth]
+    Enable = true
+  ```
+2. Log in to your Nightingale web interface
+3. Navigate to **Personal Settings** > **Profile** > **Token Management**
+4. Create a new token with appropriate permissions
 
 ![image-20260205172354525](./doc/img/image-20260205172354525.png)
 
