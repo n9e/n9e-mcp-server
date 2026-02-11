@@ -33,25 +33,6 @@ An MCP (Model Context Protocol) server for [Nightingale](https://github.com/ccfo
 
 ### 2. Configure MCP Client
 
-#### OpenCode
-
-Add to your `~/.opencode/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "nightingale": {
-      "command": "npx",
-      "args": ["-y", "@n9e/n9e-mcp-server", "stdio"],
-      "env": {
-        "N9E_TOKEN": "your-api-token",
-        "N9E_BASE_URL": "http://your-n9e-server:17000"
-      }
-    }
-  }
-}
-```
-
 #### Cursor
 
 Add to your `~/.cursor/mcp.json`:
