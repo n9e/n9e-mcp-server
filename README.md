@@ -57,6 +57,39 @@ Add to your `~/.cursor/mcp.json`:
 }
 ```
 
+#### Docker
+
+The official code uses the `stdio` protocol by default for inter-process communication. If you need to integrate with web-based LLM orchestration platforms like Dify or FastGPT that only support network calls (HTTP/SSE), we recommend using the provided Docker Compose solution. This deployment automatically introduces the `mcp-proxy` bridge to enable network protocol support.
+
+**Deployment Steps:**
+
+1. Clone this repository:
+
+   ```bash
+   git clone https://github.com/n9e/n9e-mcp-server.git
+   cd n9e-mcp-server/docker
+   ```
+   
+2. Modify the configuration in `docker-compose.yml`:
+
+   - `MCP_VERSION`: (Optional) Set this explicitly in `build.args` to `latest` or to a concrete version such as `0.1.1`. Do not leave it blank.
+   - `N9E_BASE_URL`: Replace with your actual Nightingale API URL.
+   - `N9E_TOKEN`: Replace with your generated API Token.
+
+3. Start the service:
+
+   ```bash
+   # By default, it will install the specified version via NPM and start
+   docker compose up -d --build
+   ```
+   
+4. Configure the MCP plugin in Dify:
+
+   - **Connection Type**: Streamable HTTP (SSE)
+   - **URL**: `http://<Your-Server-IP>:8082/sse`
+
+> **Developer Note**: If you have modified the source code and wish to build a local test image, change the `dockerfile` field in `docker-compose.yml` to `docker/Dockerfile.source`. This will copy the repository source into the image, run the project's normal Go build process (via the repository build/Makefile flow), and then start the server using the image's configured runtime entrypoint.
+
 ### 3. Restart Cursor or Other Client Processes to Use
 
 ## Available Tools

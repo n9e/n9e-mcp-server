@@ -56,6 +56,39 @@
 }
 ```
 
+#### Docker
+
+官方代码默认采用 `stdio` 协议进行进程间通信。若需要对接 Dify、FastGPT 等仅支持网络调用 (HTTP/SSE) 的大模型编排平台，推荐使用我们提供的 Docker Compose 方案。底层将自动引入 `mcp-proxy` 桥接器实现网络协议支持。
+
+**部署步骤：**
+
+1. 克隆本仓库到本地：
+
+   ```bash
+   git clone -b main https://github.com/n9e/n9e-mcp-server.git
+   cd n9e-mcp-server/docker
+   ```
+
+2. 修改 `docker-compose.yml` 中的配置：
+
+   - `MCP_VERSION`: (可选) 在 `build.args` 中显式指定版本号，如 `0.1.1`；如需拉取最新版，请填写 `latest`，不要留空。
+   - `N9E_BASE_URL`: 替换为夜莺的实际 API 地址。
+   - `N9E_TOKEN`: 替换为您生成的 API Token。
+
+3. 启动服务：
+
+   ```bash
+   # 默认将通过 NPM 安装指定版本的 MCP Server 并启动
+   docker compose up -d --build
+   ```
+
+4. 在 Dify 的 MCP 插件中配置：
+
+   - **连接方式**：基于 HTTP 的流式连接 (SSE)
+   - **URL**：`http://<您的服务器IP>:8082/sse`
+
+> **开发者说明**：若您修改了源代码并希望构建本地测试镜像，请在 `docker-compose.yml` 中将 `dockerfile` 字段修改为 `docker/Dockerfile.source`。该 Dockerfile 会自动拷贝所有源码，执行 Go 项目的本地构建流程（如 `make build` 或 `go build`），并按镜像默认入口启动服务。
+
 ### 3.重启 Cursor 等进程，即可使用
 
 ## 可用工具

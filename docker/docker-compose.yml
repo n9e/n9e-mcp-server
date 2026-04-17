@@ -1,0 +1,23 @@
+services:
+  n9e-mcp-server:
+    build: 
+      context: . # 使用 docker 目录作为构建上下文，确保 docker/.dockerignore 生效
+      dockerfile: Dockerfile # 默认使用 NPM 安装模式
+      # dockerfile: Dockerfile.source # 开发者可取消注释，使用源码编译模式
+      args:
+        # 指定需要的版本号，如 "0.1.1"。留空或 latest 则拉取最新版
+        MCP_VERSION: "latest"
+    container_name: n9e-mcp-server
+    restart: always
+    environment:
+      # 夜莺 API 地址 (必须配置)
+      N9E_BASE_URL: "http://your-n9e-server:17000"
+      # 夜莺 API Token (必须配置)
+      N9E_TOKEN: "your_n9e_api_token_here"
+      # 可选：通过环境变量控制启用的工具集
+      # N9E_TOOLSETS: "alerts,targets,mutes"
+    ports:
+      - "8082:8082"
+    # 增加资源限制，保障宿主机稳定性
+    cpus: '0.5'
+    mem_limit: 512M

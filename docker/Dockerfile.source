@@ -1,0 +1,22 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# 优先拷贝 package.json 利用 Docker 缓存
+COPY package*.json ./
+
+# 设置淘宝源并安装本地依赖
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm install
+
+# 拷贝全量源码并编译 (TS -> JS)
+COPY . .
+RUN npm run build
+
+# 单独全局安装 mcp-proxy 桥接器
+RUN npm install -g mcp-proxy
+
+EXPOSE 8082
+
+# 启动代理桥接器，并执行本地编译后的代码
+CMD ["npx", "mcp-proxy", "--port", "8082", "--", "npm", "start"]
