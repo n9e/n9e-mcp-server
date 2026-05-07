@@ -19,6 +19,10 @@ func DefaultToolsetGroup(getClient client.GetClientFunc, readOnly bool) *toolset
 	RegisterAlertSubscribesToolset(group, getClient)
 	RegisterEventPipelinesToolset(group, getClient)
 	RegisterUsersToolset(group, getClient)
+	RegisterMetricsToolset(group, getClient)
+	RegisterLogsToolset(group, getClient)
+	RegisterDashboardsToolset(group, getClient)
+	RegisterRolesToolset(group, getClient)
 
 	return group
 }

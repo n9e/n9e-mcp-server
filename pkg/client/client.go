@@ -104,6 +104,16 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 
 // makeRequest is the request method with timeout and retry
 func (c *Client) makeRequest(ctx context.Context, method, path string, params url.Values, body any) ([]byte, int, string, error) {
+	return c.makeRequestLimited(ctx, method, path, params, body, maxResponseSize)
+}
+
+// makeRequestLimited is like makeRequest but with a caller-supplied response size cap.
+// A value <= 0 falls back to the default maxResponseSize.
+func (c *Client) makeRequestLimited(ctx context.Context, method, path string, params url.Values, body any, maxSize int64) ([]byte, int, string, error) {
+	if maxSize <= 0 {
+		maxSize = maxResponseSize
+	}
+
 	var lastErr error
 
 	for attempt := 0; attempt <= DefaultMaxRetries; attempt++ {
@@ -130,7 +140,7 @@ func (c *Client) makeRequest(ctx context.Context, method, path string, params ur
 		defer resp.Body.Close()
 
 		// Read response
-		bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
+		bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("failed to read response: %w", err)
 		}
@@ -223,6 +233,40 @@ func DoGet[T any](c *Client, ctx context.Context, path string, params url.Values
 	}
 
 	// Check business error
+	if resp.Err != "" {
+		return zero, &APIError{
+			Method:     "GET",
+			Path:       path,
+			Params:     params,
+			StatusCode: httpStatus,
+			ErrMsg:     resp.Err,
+			RequestID:  requestID,
+		}
+	}
+
+	return resp.Dat, nil
+}
+
+// DoGetLarge is like DoGet but accepts an explicit response size cap.
+// Use this for endpoints that legitimately return more than the default 10MB
+// (e.g. dashboard configs, alert rule dumps). A maxSize <= 0 falls back to the default.
+func DoGetLarge[T any](c *Client, ctx context.Context, path string, params url.Values, maxSize int64) (T, error) {
+	var zero T
+
+	bodyBytes, httpStatus, requestID, err := c.makeRequestLimited(ctx, "GET", path, params, nil, maxSize)
+	if err != nil {
+		return zero, err
+	}
+
+	var resp types.N9eResponse[T]
+	if err := json.Unmarshal(bodyBytes, &resp); err != nil {
+		preview := string(bodyBytes)
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		return zero, fmt.Errorf("failed to unmarshal response (check N9E_BASE_URL and N9E_TOKEN): %w, response preview: %s", err, preview)
+	}
+
 	if resp.Err != "" {
 		return zero, &APIError{
 			Method:     "GET",

@@ -10,7 +10,11 @@ import (
 )
 
 // DefaultToolsets is the default enabled toolsets
-var DefaultToolsets = []string{"alerts", "targets", "datasource", "mutes", "busi_groups", "notify_rules", "alert_subscribes", "event_pipelines", "users"}
+var DefaultToolsets = []string{
+	"alerts", "targets", "datasource", "mutes", "busi_groups",
+	"notify_rules", "alert_subscribes", "event_pipelines", "users",
+	"metrics", "logs", "dashboards", "roles",
+}
 
 // ServerTool wraps MCP tool and its handler function
 type ServerTool struct {
@@ -26,7 +30,10 @@ func NewServerTool(tool mcp.Tool, handler mcp.ToolHandler) ServerTool {
 	}
 }
 
-// Toolset represents a toolset
+// Toolset represents a toolset.
+// Tools split into two safety tiers:
+//   - ReadTools: always registered.
+//   - WriteTools: registered unless the group is in read-only mode.
 type Toolset struct {
 	Name        string
 	Description string
@@ -50,7 +57,7 @@ func (t *Toolset) AddReadTools(tools ...ServerTool) *Toolset {
 	return t
 }
 
-// AddWriteTools adds write tools
+// AddWriteTools adds write tools (create/update)
 func (t *Toolset) AddWriteTools(tools ...ServerTool) *Toolset {
 	t.WriteTools = append(t.WriteTools, tools...)
 	return t
@@ -104,25 +111,26 @@ func (g *ToolsetGroup) EnableToolsets(names []string) error {
 	return nil
 }
 
-// RegisterAll registers all enabled tools to MCP Server
+// RegisterAll registers all enabled tools to MCP Server.
+// Read tools are always registered. Write tools are skipped when readOnly=true.
 func (g *ToolsetGroup) RegisterAll(s *mcp.Server) {
 	for name, toolset := range g.toolsets {
 		if !g.enabled[name] {
 			continue
 		}
 
-		// Register read-only tools
 		for _, st := range toolset.ReadTools {
 			tool := st.Tool
 			s.AddTool(&tool, st.Handler)
 		}
 
-		// If not read-only mode, register write tools
-		if !g.readOnly {
-			for _, st := range toolset.WriteTools {
-				tool := st.Tool
-				s.AddTool(&tool, st.Handler)
-			}
+		if g.readOnly {
+			continue
+		}
+
+		for _, st := range toolset.WriteTools {
+			tool := st.Tool
+			s.AddTool(&tool, st.Handler)
 		}
 	}
 }

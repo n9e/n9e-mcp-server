@@ -154,35 +154,84 @@ The official code uses the `stdio` protocol by default for inter-process communi
 
 ## Available Tools
 
-| Toolset | Tool | Description |
-|---------|------|-------------|
-| alerts | `list_active_alerts` | List currently firing alerts with optional filters |
-| alerts | `get_active_alert` | Get details of a specific active alert by event ID |
-| alerts | `list_history_alerts` | List historical alerts with optional filters |
-| alerts | `get_history_alert` | Get details of a specific historical alert |
-| alerts | `list_alert_rules` | List alert rules for a business group |
-| alerts | `get_alert_rule` | Get details of a specific alert rule |
-| targets | `list_targets` | List monitored hosts/targets with optional filters |
-| datasource | `list_datasources` | List all available datasources |
-| mutes | `list_mutes` | List alert mutes for a business group |
-| mutes | `get_mute` | Get details of a specific alert mute |
-| mutes | `create_mute` | Create a new alert mute/silence rule |
-| mutes | `update_mute` | Update an existing alert mute/silence rule |
-| notify_rules | `list_notify_rules` | List all notification rules |
-| notify_rules | `get_notify_rule` | Get details of a specific notification rule |
-| alert_subscribes | `list_alert_subscribes` | List alert subscriptions for a business group |
-| alert_subscribes | `list_alert_subscribes_by_gids` | List subscriptions across multiple business groups |
-| alert_subscribes | `get_alert_subscribe` | Get details of a specific subscription |
-| event_pipelines | `list_event_pipelines` | List all event pipelines/workflows |
-| event_pipelines | `get_event_pipeline` | Get details of a specific event pipeline |
-| event_pipelines | `list_event_pipeline_executions` | List execution records for a specific pipeline |
-| event_pipelines | `list_all_event_pipeline_executions` | List all execution records across all pipelines |
-| event_pipelines | `get_event_pipeline_execution` | Get details of a specific execution |
-| users | `list_users` | List users with optional filters |
-| users | `get_user` | Get details of a specific user |
-| users | `list_user_groups` | List user groups/teams |
-| users | `get_user_group` | Get details of a user group including members |
-| busi_groups | `list_busi_groups` | List business groups accessible to the current user |
+Tools split into two tiers:
+
+- **read** — always available
+- **write** — registered unless `--read-only` is set (covers create/update/import/clone/toggle)
+
+The full default toolset list is `alerts, targets, datasource, mutes, busi_groups, notify_rules, alert_subscribes, event_pipelines, users, metrics, logs, dashboards, roles`. Restrict via `N9E_TOOLSETS`.
+
+### `alerts`
+
+| Tool | Tier | Description |
+|---|---|---|
+| `list_active_alerts` / `get_active_alert` | read | Active firing alerts |
+| `list_history_alerts` / `get_history_alert` | read | Historical alerts |
+| `list_alert_rules` / `get_alert_rule` | read | Alert rule listing |
+| `create_alert_rule` / `update_alert_rule` | write | CRUD on a single rule |
+| `import_alert_rules` / `import_prom_rules` | write | Bulk import (n9e JSON or Prometheus YAML) |
+| `clone_alert_rules_to_bgs` | write | Copy rules into target business groups |
+| `toggle_alert_rules` | write | Enable/disable a batch (uses `PUT .../fields`) |
+
+### `dashboards`
+
+| Tool | Tier | Description |
+|---|---|---|
+| `list_dashboards` / `get_dashboard` / `get_dashboard_pure` | read | List + metadata + full panel JSON |
+| `create_dashboard` / `update_dashboard_meta` / `update_dashboard_panels` | write | CRUD splits meta vs panels |
+| `set_dashboard_public` / `clone_dashboard` | write | Visibility + clone |
+
+### `notify_rules`
+
+| Tool | Tier | Description |
+|---|---|---|
+| `list_notify_rules` / `get_notify_rule` | read | Notification rules |
+| `list_notify_channels` / `get_notify_channel` / `list_notify_templates` | read | Channel + template listing |
+| `create_notify_rules` / `update_notify_rule` / `test_notify_rule` | write | Rule CRUD + dry-run test |
+| `create_notify_channel` / `update_notify_channel` | write | Channel CRUD |
+| `create_notify_template` / `update_notify_template` / `update_notify_template_content` | write | Template CRUD |
+
+### `datasource`
+
+| Tool | Tier | Description |
+|---|---|---|
+| `list_datasources` / `list_datasources_full` / `get_datasource` / `list_datasource_plugins` | read | Brief + full configs + supported plugins |
+| `upsert_datasource` | write | Create or update; n9e validates connectivity inside upsert |
+| `set_datasource_status` | write | Enable/disable batch |
+
+### `users`
+
+| Tool | Tier | Description |
+|---|---|---|
+| `list_users` / `get_user` / `list_user_groups` / `get_user_group` | read | |
+| `create_user` / `update_user_profile` / `reset_user_password` | write | Profile.roles assigns RBAC roles (no separate endpoint) |
+| `create_user_group` / `update_user_group` / `add_user_group_members` | write | Team management |
+
+### `roles` (RBAC)
+
+| Tool | Tier | Description |
+|---|---|---|
+| `list_roles` / `list_operations` / `list_role_operations` | read | |
+| `create_role` / `update_role` / `bind_role_operations` | write | `bind_role_operations` replaces (not deltas) |
+
+### `metrics` (Prometheus query proxy)
+
+| Tool | Tier | Description |
+|---|---|---|
+| `query_instant` | read | `/api/v1/query` via `/api/n9e/proxy/{ds_id}/...` |
+| `query_range` | read | Auto-adjusts `step` so result ≤ `max_points` (default 1000); flags `truncated:true` when downsampled |
+| `query_label_values` / `query_series` | read | |
+
+### `logs`
+
+| Tool | Tier | Description |
+|---|---|---|
+| `query_logs` | read | Plugin-dispatched `/logs-query` (Loki/ES/OS); default `limit=200`; rejects time ranges > 7 days |
+| `list_log_indices` / `list_log_fields` | read | ES (default) or OpenSearch (`engine=os`) |
+
+### `mutes` / `alert_subscribes` / `event_pipelines` / `targets` / `busi_groups`
+
+These keep their existing tools (see prior versions). `mutes` adds no new tools in this revision.
 
 ## Example Prompts
 
@@ -209,7 +258,7 @@ Once configured, you can interact with Nightingale using natural language:
 |----------|------|-------------|---------|
 | `N9E_TOKEN` | `--token` | Nightingale API token (required) | - |
 | `N9E_BASE_URL` | `--base-url` | Nightingale API base URL | `http://localhost:17000` |
-| `N9E_READ_ONLY` | `--read-only` | Disable write operations | `false` |
+| `N9E_READ_ONLY` | `--read-only` | Disable write operations (only `read` tools registered) | `false` |
 | `N9E_TOOLSETS` | `--toolsets` | Enabled toolsets (comma-separated) | `all` |
 | `N9E_LISTEN` | `--listen` | HTTP mode: listen address | `:8080` |
 | `N9E_SESSION_TIMEOUT` | `--session-timeout` | HTTP mode: idle session timeout (0 = no timeout) | `0` |
@@ -218,7 +267,7 @@ Once configured, you can interact with Nightingale using natural language:
 
 By default, all toolsets are enabled. You can use the `--toolsets` flag or `N9E_TOOLSETS` environment variable to enable only the toolsets you need, reducing the number of tools exposed to the AI assistant and saving context window tokens.
 
-Available toolsets: `alerts`, `targets`, `datasource`, `mutes`, `busi_groups`, `notify_rules`, `alert_subscribes`, `event_pipelines`, `users`
+Available toolsets: `alerts`, `targets`, `datasource`, `mutes`, `busi_groups`, `notify_rules`, `alert_subscribes`, `event_pipelines`, `users`, `metrics`, `logs`, `dashboards`, `roles`
 
 For example, to enable only alert and target related tools:
 

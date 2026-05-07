@@ -437,3 +437,38 @@ type PeriodicMute struct {
 	EnableEtime      string `json:"enable_etime"`
 	EnableDaysOfWeek string `json:"enable_days_of_week"`
 }
+
+// Board represents a dashboard. The panel JSON lives in Configs and can be very large;
+// the dashboards toolset uses DoGetLarge when fetching it for backup.
+type Board struct {
+	Id        int64    `json:"id"`
+	GroupId   int64    `json:"group_id"`
+	Name      string   `json:"name"`
+	Ident     string   `json:"ident,omitempty"`
+	Tags      string   `json:"tags,omitempty"`
+	BuiltIn   int      `json:"built_in,omitempty"`
+	Hide      int      `json:"hide,omitempty"`
+	Public    int      `json:"public,omitempty"`
+	PublicCate int     `json:"public_cate,omitempty"`
+	Bgids     []int64  `json:"bgids,omitempty"`
+	CreateAt  int64    `json:"create_at"`
+	CreateBy  string   `json:"create_by"`
+	UpdateAt  int64    `json:"update_at"`
+	UpdateBy  string   `json:"update_by"`
+	Configs   string   `json:"configs,omitempty"` // JSON string of panels
+}
+
+// Role represents an RBAC role definition.
+type Role struct {
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+	Note  string `json:"note,omitempty"`
+	Extra any    `json:"extra,omitempty"`
+}
+
+// Operation represents a permission operation that may be bound to a role.
+type Operation struct {
+	Name  string `json:"name"`
+	Group string `json:"group,omitempty"`
+	Cn    string `json:"cn,omitempty"`
+}

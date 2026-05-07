@@ -153,35 +153,78 @@ N9E_TOKEN=xxx N9E_BASE_URL=https://n9e.example.com n9e-mcp-server http --listen 
 
 ## 可用工具
 
-| 工具集 | 工具 | 说明 |
-|-------|------|------|
-| alerts | `list_active_alerts` | 列出当前活跃告警，支持过滤条件 |
-| alerts | `get_active_alert` | 根据事件 ID 获取活跃告警详情 |
-| alerts | `list_history_alerts` | 列出历史告警，支持过滤条件 |
-| alerts | `get_history_alert` | 获取历史告警详情 |
-| alerts | `list_alert_rules` | 列出业务组的告警规则 |
-| alerts | `get_alert_rule` | 获取告警规则详情 |
-| targets | `list_targets` | 列出被监控主机/目标，支持过滤条件 |
-| datasource | `list_datasources` | 列出所有可用数据源 |
-| mutes | `list_mutes` | 列出业务组的告警屏蔽规则 |
-| mutes | `get_mute` | 获取告警屏蔽规则详情 |
-| mutes | `create_mute` | 创建告警屏蔽规则 |
-| mutes | `update_mute` | 更新告警屏蔽规则 |
-| notify_rules | `list_notify_rules` | 列出所有通知规则 |
-| notify_rules | `get_notify_rule` | 获取通知规则详情 |
-| alert_subscribes | `list_alert_subscribes` | 列出业务组的告警订阅 |
-| alert_subscribes | `list_alert_subscribes_by_gids` | 列出多个业务组的订阅 |
-| alert_subscribes | `get_alert_subscribe` | 获取订阅详情 |
-| event_pipelines | `list_event_pipelines` | 列出所有事件流水线 |
-| event_pipelines | `get_event_pipeline` | 获取事件流水线详情 |
-| event_pipelines | `list_event_pipeline_executions` | 列出指定流水线的执行记录 |
-| event_pipelines | `list_all_event_pipeline_executions` | 列出所有流水线的执行记录 |
-| event_pipelines | `get_event_pipeline_execution` | 获取执行记录详情 |
-| users | `list_users` | 列出用户，支持过滤条件 |
-| users | `get_user` | 获取用户详情 |
-| users | `list_user_groups` | 列出用户组/团队 |
-| users | `get_user_group` | 获取用户组详情（包含成员） |
-| busi_groups | `list_busi_groups` | 列出当前用户可访问的业务组 |
+工具按两档安全等级组织:
+
+- **read** — 始终注册
+- **write** — `--read-only` 关闭时注册(create/update/import/clone/toggle 等)
+
+完整 toolset 列表: `alerts、targets、datasource、mutes、busi_groups、notify_rules、alert_subscribes、event_pipelines、users、metrics、logs、dashboards、roles`,可通过 `N9E_TOOLSETS` 缩减。
+
+下面只列出新增/扩展的部分;原有工具(targets、busi_groups、event_pipelines、alert_subscribes、mutes)保持不变。
+
+### `alerts`(扩展)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `list_active_alerts` / `get_active_alert` / `list_history_alerts` / `get_history_alert` / `list_alert_rules` / `get_alert_rule` | read | 已有读工具 |
+| `create_alert_rule` / `update_alert_rule` | write | 单条 CRUD |
+| `import_alert_rules` / `import_prom_rules` | write | 批量导入(n9e JSON 或 Prometheus YAML) |
+| `clone_alert_rules_to_bgs` / `toggle_alert_rules` | write | 跨业务组克隆 / 批量启停(走 `PUT .../fields`) |
+
+### `dashboards`(新)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `list_dashboards` / `get_dashboard` / `get_dashboard_pure` | read | 列表 + 元数据 + 完整面板 JSON |
+| `create_dashboard` / `update_dashboard_meta` / `update_dashboard_panels` | write | 元数据与面板分开更新 |
+| `set_dashboard_public` / `clone_dashboard` | write | 可见性切换 + 克隆 |
+
+### `notify_rules`(扩展,含 channels + templates)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `list_notify_rules` / `get_notify_rule` / `list_notify_channels` / `get_notify_channel` / `list_notify_templates` | read | |
+| `create_notify_rules` / `update_notify_rule` / `test_notify_rule` | write | 规则 CRUD + 干跑测试 |
+| `create_notify_channel` / `update_notify_channel` | write | 通道 CRUD |
+| `create_notify_template` / `update_notify_template` / `update_notify_template_content` | write | 模板 CRUD |
+
+### `datasource`(扩展)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `list_datasources` / `list_datasources_full` / `get_datasource` / `list_datasource_plugins` | read | brief / 完整 / 插件类型 |
+| `upsert_datasource` | write | 创建或更新一体化(n9e 在 upsert 内部做连通性校验,无独立 test 端点) |
+| `set_datasource_status` | write | 批量启停 |
+
+### `users`(扩展)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `list_users` / `get_user` / `list_user_groups` / `get_user_group` | read | |
+| `create_user` / `update_user_profile` / `reset_user_password` | write | profile.roles 字段即角色分配(n9e 没有独立分配端点) |
+| `create_user_group` / `update_user_group` / `add_user_group_members` | write | 团队管理 |
+
+### `roles`(新)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `list_roles` / `list_operations` / `list_role_operations` | read | |
+| `create_role` / `update_role` / `bind_role_operations` | write | bind 是替换语义,不是增量 |
+
+### `metrics`(新,Prom 查询代理)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `query_instant` | read | `/api/v1/query` |
+| `query_range` | read | 自动调整 `step` 让结果点数 ≤ `max_points`(默认 1000),被降采样时返回 `truncated:true` |
+| `query_label_values` / `query_series` | read | |
+
+### `logs`(新)
+
+| 工具 | 等级 | 说明 |
+|---|---|---|
+| `query_logs` | read | n9e 插件分发的 `/logs-query`(Loki/ES/OS 通吃);默认 `limit=200`;时间跨度 > 7 天直接拒绝 |
+| `list_log_indices` / `list_log_fields` | read | ES(默认)或 OpenSearch(`engine=os`) |
 
 ## 示例提示词
 
@@ -208,7 +251,7 @@ N9E_TOKEN=xxx N9E_BASE_URL=https://n9e.example.com n9e-mcp-server http --listen 
 |-----|-----------|------|-------|
 | `N9E_TOKEN` | `--token` | 夜莺 API Token（必需） | - |
 | `N9E_BASE_URL` | `--base-url` | 夜莺 API 地址 | `http://localhost:17000` |
-| `N9E_READ_ONLY` | `--read-only` | 禁用写操作 | `false` |
+| `N9E_READ_ONLY` | `--read-only` | 仅注册 read 工具,屏蔽全部 write 工具 | `false` |
 | `N9E_TOOLSETS` | `--toolsets` | 启用的工具集（逗号分隔） | `all` |
 | `N9E_LISTEN` | `--listen` | HTTP 模式：监听地址 | `:8080` |
 | `N9E_SESSION_TIMEOUT` | `--session-timeout` | HTTP 模式：空闲会话超时（0 表示不超时） | `0` |
@@ -218,7 +261,7 @@ N9E_TOKEN=xxx N9E_BASE_URL=https://n9e.example.com n9e-mcp-server http --listen 
 
 默认启用所有工具集。可以通过 `--toolsets` 参数或 `N9E_TOOLSETS` 环境变量只启用需要的工具集，减少暴露给 AI 助手的工具数量，节省上下文窗口的 token 消耗。
 
-可用工具集：`alerts`、`targets`、`datasource`、`mutes`、`busi_groups`、`notify_rules`、`alert_subscribes`、`event_pipelines`、`users`
+可用工具集：`alerts`、`targets`、`datasource`、`mutes`、`busi_groups`、`notify_rules`、`alert_subscribes`、`event_pipelines`、`users`、`metrics`、`logs`、`dashboards`、`roles`
 
 例如，只启用告警和监控目标相关工具：
 
