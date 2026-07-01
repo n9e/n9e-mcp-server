@@ -62,6 +62,37 @@ func NewClient(token, baseURL, userAgent string) (*Client, error) {
 	}, nil
 }
 
+// NewClientWithHTTPClient creates a Nightingale API client backed by a
+// caller-supplied *http.Client. This lets an embedder inject a custom transport
+// (e.g. an in-process dispatcher that hands requests straight to a gin engine
+// instead of dialing a socket) while reusing every toolset unchanged.
+//
+// Unlike NewClient it does not require a token: callers that authenticate the
+// underlying transport by other means may pass an empty token. baseURL may be
+// empty (defaults to http://localhost:17000); with an in-process transport the
+// host is irrelevant since nothing is dialed.
+func NewClientWithHTTPClient(token, baseURL, userAgent string, httpClient *http.Client) (*Client, error) {
+	if httpClient == nil {
+		return nil, fmt.Errorf("http client is required")
+	}
+
+	if baseURL == "" {
+		baseURL = "http://localhost:17000"
+	}
+
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %w", err)
+	}
+
+	return &Client{
+		httpClient: httpClient,
+		baseURL:    parsedURL,
+		token:      token,
+		userAgent:  userAgent,
+	}, nil
+}
+
 // SetUserAgent sets the User-Agent
 func (c *Client) SetUserAgent(userAgent string) {
 	c.userAgent = userAgent
