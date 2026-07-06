@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -16,6 +17,62 @@ import (
 // defaultMaxPoints caps how many time-series points a range query may return per series
 // before downsampling. Models tend to choke (and burn tokens) on tens of thousands of points.
 const defaultMaxPoints = 1000
+
+// promResponse is the native Prometheus API envelope. n9e's datasource proxy
+// (/api/n9e/proxy/{ds_id}/*) forwards the TSDB response verbatim — it is NOT
+// wrapped in the n9e {dat, err} envelope, so DoGet would silently decode it
+// into an empty Dat. Metrics tools must go through doPromGet instead.
+type promResponse struct {
+	Status    string          `json:"status"`
+	Data      json.RawMessage `json:"data"`
+	ErrorType string          `json:"errorType"`
+	Error     string          `json:"error"`
+}
+
+// doPromGet fetches a datasource-proxy path and decodes the native Prometheus
+// envelope: it returns the "data" payload on success, surfaces Prometheus
+// {"status":"error"} responses as errors, and recognises the n9e {err} envelope
+// the proxy emits when it fails before reaching the TSDB (e.g. unknown ds_id).
+func doPromGet(c *client.Client, ctx context.Context, path string, params url.Values) (any, error) {
+	raw, err := client.DoGetRaw(c, ctx, path, params)
+	if err != nil {
+		return nil, err
+	}
+
+	var pr promResponse
+	if err := json.Unmarshal(raw, &pr); err != nil {
+		return nil, fmt.Errorf("failed to decode datasource proxy response: %w, response preview: %s", err, preview(raw))
+	}
+
+	switch pr.Status {
+	case "success":
+		var data any
+		if err := json.Unmarshal(pr.Data, &data); err != nil {
+			return nil, fmt.Errorf("failed to decode prometheus data: %w, response preview: %s", err, preview(raw))
+		}
+		return data, nil
+	case "error":
+		return nil, fmt.Errorf("prometheus error (%s): %s", pr.ErrorType, pr.Error)
+	default:
+		// Not a Prometheus envelope: most likely the n9e proxy rejected the
+		// request before dialing the TSDB and answered with its own envelope.
+		var env struct {
+			Err string `json:"err"`
+		}
+		if json.Unmarshal(raw, &env) == nil && env.Err != "" {
+			return nil, fmt.Errorf("n9e proxy error: %s", env.Err)
+		}
+		return nil, fmt.Errorf("unexpected datasource proxy response: %s", preview(raw))
+	}
+}
+
+// preview truncates a response body for error messages.
+func preview(raw []byte) string {
+	if len(raw) > 200 {
+		return string(raw[:200]) + "..."
+	}
+	return string(raw)
+}
 
 // RegisterMetricsToolset registers the metrics-query toolset.
 // Tools wrap n9e's path-agnostic datasource proxy at /api/n9e/proxy/{ds_id}/*url
@@ -77,7 +134,7 @@ func queryInstantTool(getClient client.GetClientFunc) toolset.ServerTool {
 			}
 
 			path := fmt.Sprintf("/api/n9e/proxy/%d/api/v1/query", input.DsId)
-			result, err := client.DoGet[any](c, ctx, path, params)
+			result, err := doPromGet(c, ctx, path, params)
 			if err != nil {
 				return toolset.NewToolResultError(err.Error()), nil
 			}
@@ -155,7 +212,7 @@ func queryRangeTool(getClient client.GetClientFunc) toolset.ServerTool {
 			params.Set("step", strconv.FormatFloat(step, 'f', -1, 64))
 
 			path := fmt.Sprintf("/api/n9e/proxy/%d/api/v1/query_range", input.DsId)
-			result, err := client.DoGet[any](c, ctx, path, params)
+			result, err := doPromGet(c, ctx, path, params)
 			if err != nil {
 				return toolset.NewToolResultError(err.Error()), nil
 			}
@@ -202,7 +259,7 @@ func queryLabelValuesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				return toolset.NewToolResultError("failed to get n9e client from context"), nil
 			}
 			path := fmt.Sprintf("/api/n9e/proxy/%d/api/v1/label/%s/values", input.DsId, url.PathEscape(input.Label))
-			result, err := client.DoGet[any](c, ctx, path, nil)
+			result, err := doPromGet(c, ctx, path, nil)
 			if err != nil {
 				return toolset.NewToolResultError(err.Error()), nil
 			}
@@ -257,7 +314,7 @@ func querySeriesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				params.Set("end", strconv.FormatFloat(input.End, 'f', -1, 64))
 			}
 			path := fmt.Sprintf("/api/n9e/proxy/%d/api/v1/series", input.DsId)
-			result, err := client.DoGet[any](c, ctx, path, params)
+			result, err := doPromGet(c, ctx, path, params)
 			if err != nil {
 				return toolset.NewToolResultError(err.Error()), nil
 			}

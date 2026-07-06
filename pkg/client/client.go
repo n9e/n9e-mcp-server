@@ -278,6 +278,20 @@ func DoGet[T any](c *Client, ctx context.Context, path string, params url.Values
 	return resp.Dat, nil
 }
 
+// DoGetRaw executes a GET request and returns the response body verbatim,
+// without unwrapping the Nightingale {dat, err} envelope. Use it for endpoints
+// that forward a third-party payload as-is — most notably the datasource proxy
+// (/api/n9e/proxy/{ds_id}/*), which returns the TSDB's native response
+// (e.g. Prometheus {"status":..., "data":...}) rather than an n9e envelope.
+// HTTP-level errors (4xx/5xx, timeouts, retries) are handled exactly as DoGet.
+func DoGetRaw(c *Client, ctx context.Context, path string, params url.Values) (json.RawMessage, error) {
+	bodyBytes, _, _, err := c.makeRequest(ctx, "GET", path, params, nil)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(bodyBytes), nil
+}
+
 // DoGetLarge is like DoGet but accepts an explicit response size cap.
 // Use this for endpoints that legitimately return more than the default 10MB
 // (e.g. dashboard configs, alert rule dumps). A maxSize <= 0 falls back to the default.
