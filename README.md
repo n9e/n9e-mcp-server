@@ -214,13 +214,12 @@ The full default toolset list is `alerts, targets, datasource, mutes, busi_group
 | `list_roles` / `list_operations` / `list_role_operations` | read | |
 | `create_role` / `update_role` / `bind_role_operations` | write | `bind_role_operations` replaces (not deltas) |
 
-### `metrics` (Prometheus query proxy)
+### `metrics` (PromQL queries)
 
 | Tool | Tier | Description |
 |---|---|---|
-| `query_instant` | read | `/api/v1/query` via `/api/n9e/proxy/{ds_id}/...` |
-| `query_range` | read | Auto-adjusts `step` so result ≤ `max_points` (default 1000); flags `truncated:true` when downsampled |
-| `query_label_values` / `query_series` | read | |
+| `query_instant` | read | PromQL instant query via `/api/n9e/query-instant-batch` |
+| `query_range` | read | PromQL range query via `/api/n9e/query-range-batch`; auto-adjusts `step` so result ≤ `max_points` (default 1000); flags `truncated:true` when downsampled |
 
 ### `logs`
 

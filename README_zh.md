@@ -211,13 +211,12 @@ N9E_TOKEN=xxx N9E_BASE_URL=https://n9e.example.com n9e-mcp-server http --listen 
 | `list_roles` / `list_operations` / `list_role_operations` | read | |
 | `create_role` / `update_role` / `bind_role_operations` | write | bind 是替换语义,不是增量 |
 
-### `metrics`(新,Prom 查询代理)
+### `metrics`(新,PromQL 查询)
 
 | 工具 | 等级 | 说明 |
 |---|---|---|
-| `query_instant` | read | `/api/v1/query` |
-| `query_range` | read | 自动调整 `step` 让结果点数 ≤ `max_points`(默认 1000),被降采样时返回 `truncated:true` |
-| `query_label_values` / `query_series` | read | |
+| `query_instant` | read | PromQL 即时查询,走 `/api/n9e/query-instant-batch` |
+| `query_range` | read | PromQL 区间查询,走 `/api/n9e/query-range-batch`;自动调整 `step` 让结果点数 ≤ `max_points`(默认 1000),被降采样时返回 `truncated:true` |
 
 ### `logs`(新)
 
