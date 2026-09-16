@@ -253,29 +253,13 @@ func DoGet[T any](c *Client, ctx context.Context, path string, params url.Values
 		return zero, err
 	}
 
-	var resp types.N9eResponse[T]
-	if err := json.Unmarshal(bodyBytes, &resp); err != nil {
-		// Provide detailed error info for diagnosis
-		preview := string(bodyBytes)
-		if len(preview) > 200 {
-			preview = preview[:200] + "..."
-		}
-		return zero, fmt.Errorf("failed to unmarshal response (check N9E_BASE_URL and N9E_TOKEN): %w, response preview: %s", err, preview)
-	}
-
-	// Check business error
-	if resp.Err != "" {
-		return zero, &APIError{
-			Method:     "GET",
-			Path:       path,
-			Params:     params,
-			StatusCode: httpStatus,
-			ErrMsg:     resp.Err,
-			RequestID:  requestID,
-		}
-	}
-
-	return resp.Dat, nil
+	return decodeResponse[T](bodyBytes, apiRequestContext{
+		method:     "GET",
+		path:       path,
+		params:     params,
+		statusCode: httpStatus,
+		requestID:  requestID,
+	})
 }
 
 // DoGetLarge is like DoGet but accepts an explicit response size cap.
@@ -289,27 +273,13 @@ func DoGetLarge[T any](c *Client, ctx context.Context, path string, params url.V
 		return zero, err
 	}
 
-	var resp types.N9eResponse[T]
-	if err := json.Unmarshal(bodyBytes, &resp); err != nil {
-		preview := string(bodyBytes)
-		if len(preview) > 200 {
-			preview = preview[:200] + "..."
-		}
-		return zero, fmt.Errorf("failed to unmarshal response (check N9E_BASE_URL and N9E_TOKEN): %w, response preview: %s", err, preview)
-	}
-
-	if resp.Err != "" {
-		return zero, &APIError{
-			Method:     "GET",
-			Path:       path,
-			Params:     params,
-			StatusCode: httpStatus,
-			ErrMsg:     resp.Err,
-			RequestID:  requestID,
-		}
-	}
-
-	return resp.Dat, nil
+	return decodeResponse[T](bodyBytes, apiRequestContext{
+		method:     "GET",
+		path:       path,
+		params:     params,
+		statusCode: httpStatus,
+		requestID:  requestID,
+	})
 }
 
 // DoPost executes POST request
@@ -321,27 +291,13 @@ func DoPost[T any](c *Client, ctx context.Context, path string, body any) (T, er
 		return zero, err
 	}
 
-	var resp types.N9eResponse[T]
-	if err := json.Unmarshal(bodyBytes, &resp); err != nil {
-		preview := string(bodyBytes)
-		if len(preview) > 200 {
-			preview = preview[:200] + "..."
-		}
-		return zero, fmt.Errorf("failed to unmarshal response (check N9E_BASE_URL and N9E_TOKEN): %w, response preview: %s", err, preview)
-	}
-
-	if resp.Err != "" {
-		return zero, &APIError{
-			Method:     "POST",
-			Path:       path,
-			Body:       body,
-			StatusCode: httpStatus,
-			ErrMsg:     resp.Err,
-			RequestID:  requestID,
-		}
-	}
-
-	return resp.Dat, nil
+	return decodeResponse[T](bodyBytes, apiRequestContext{
+		method:     "POST",
+		path:       path,
+		body:       body,
+		statusCode: httpStatus,
+		requestID:  requestID,
+	})
 }
 
 // DoPut executes PUT request
@@ -353,27 +309,13 @@ func DoPut[T any](c *Client, ctx context.Context, path string, body any) (T, err
 		return zero, err
 	}
 
-	var resp types.N9eResponse[T]
-	if err := json.Unmarshal(bodyBytes, &resp); err != nil {
-		preview := string(bodyBytes)
-		if len(preview) > 200 {
-			preview = preview[:200] + "..."
-		}
-		return zero, fmt.Errorf("failed to unmarshal response (check N9E_BASE_URL and N9E_TOKEN): %w, response preview: %s", err, preview)
-	}
-
-	if resp.Err != "" {
-		return zero, &APIError{
-			Method:     "PUT",
-			Path:       path,
-			Body:       body,
-			StatusCode: httpStatus,
-			ErrMsg:     resp.Err,
-			RequestID:  requestID,
-		}
-	}
-
-	return resp.Dat, nil
+	return decodeResponse[T](bodyBytes, apiRequestContext{
+		method:     "PUT",
+		path:       path,
+		body:       body,
+		statusCode: httpStatus,
+		requestID:  requestID,
+	})
 }
 
 // DoDelete executes DELETE request
@@ -385,25 +327,72 @@ func DoDelete[T any](c *Client, ctx context.Context, path string, body any) (T, 
 		return zero, err
 	}
 
-	var resp types.N9eResponse[T]
-	if err := json.Unmarshal(bodyBytes, &resp); err != nil {
-		preview := string(bodyBytes)
-		if len(preview) > 200 {
-			preview = preview[:200] + "..."
-		}
-		return zero, fmt.Errorf("failed to unmarshal response (check N9E_BASE_URL and N9E_TOKEN): %w, response preview: %s", err, preview)
+	return decodeResponse[T](bodyBytes, apiRequestContext{
+		method:     "DELETE",
+		path:       path,
+		body:       body,
+		statusCode: httpStatus,
+		requestID:  requestID,
+	})
+}
+
+// apiRequestContext identifies the request that produced a response, so a
+// business error can be reported with the same detail as before.
+type apiRequestContext struct {
+	method     string
+	path       string
+	params     url.Values
+	body       any
+	statusCode int
+	requestID  string
+}
+
+// decodeResponse unwraps Nightingale's response envelope into T and turns a
+// business error into *APIError.
+//
+// Nightingale answers HTTP 200 with either {"dat":...,"err":""} or
+// {"data":...,"error":...}; both are handled by types.N9eResponse. See its doc
+// comment for why the second spelling matters.
+func decodeResponse[T any](bodyBytes []byte, req apiRequestContext) (T, error) {
+	var zero T
+
+	var env types.N9eResponse
+	if err := json.Unmarshal(bodyBytes, &env); err != nil {
+		// Provide detailed error info for diagnosis
+		return zero, fmt.Errorf("failed to unmarshal response (check N9E_BASE_URL and N9E_TOKEN): %w, response preview: %s", err, previewOf(bodyBytes))
 	}
 
-	if resp.Err != "" {
+	if msg := env.BusinessError(); msg != "" {
 		return zero, &APIError{
-			Method:     "DELETE",
-			Path:       path,
-			Body:       body,
-			StatusCode: httpStatus,
-			ErrMsg:     resp.Err,
-			RequestID:  requestID,
+			Method:     req.method,
+			Path:       req.path,
+			Params:     req.params,
+			Body:       req.body,
+			StatusCode: req.statusCode,
+			ErrMsg:     msg,
+			RequestID:  req.requestID,
 		}
 	}
 
-	return resp.Dat, nil
+	payload := env.Payload()
+	if len(payload) == 0 {
+		// No body: endpoints such as status/update only report success.
+		return zero, nil
+	}
+
+	var out T
+	if err := json.Unmarshal(payload, &out); err != nil {
+		return zero, fmt.Errorf("failed to unmarshal response payload: %w, payload preview: %s", err, previewOf(payload))
+	}
+
+	return out, nil
+}
+
+// previewOf truncates a response body for error messages.
+func previewOf(b []byte) string {
+	const limit = 200
+	if len(b) > limit {
+		return string(b[:limit]) + "..."
+	}
+	return string(b)
 }

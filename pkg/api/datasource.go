@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/n9e/n9e-mcp-server/pkg/client"
 	"github.com/n9e/n9e-mcp-server/pkg/toolset"
@@ -19,7 +20,7 @@ type ListDatasourcesInput struct {
 
 // RegisterDatasourceToolset registers datasource toolset.
 //
-// Note: n9e's datasource API is unusual — endpoints are POST even for reads,
+// Note: n9e's datasource API is unusual , endpoints are POST even for reads,
 // and create/update share /datasource/upsert (which also runs the connectivity
 // check). There is no separate test-connection endpoint.
 func RegisterDatasourceToolset(group *toolset.ToolsetGroup, getClient client.GetClientFunc) {
@@ -44,7 +45,7 @@ func listDatasourcesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_datasources",
-			Description: "List all available datasources (sanitized brief view — no auth secrets)",
+			Description: "List all available datasources (sanitized brief view , no auth secrets)",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Datasources",
 				ReadOnlyHint: true,
@@ -183,7 +184,7 @@ func upsertDatasourceTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "upsert_datasource",
-			Description: "Create or update a datasource. n9e runs a connectivity check as part of upsert — a successful response implies the datasource is reachable. Omit 'id' to create.",
+			Description: "Create or update a datasource. n9e runs a connectivity check as part of upsert , a successful response implies the datasource is reachable. Omit 'id' to create.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Upsert Datasource",
 				ReadOnlyHint:    false,
@@ -223,7 +224,7 @@ func setDatasourceStatusTool(getClient client.GetClientFunc) toolset.ServerTool 
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "set_datasource_status",
-			Description: "Enable or disable one or more datasources (POST /datasource/status/update).",
+			Description: "Enable or disable one or more datasources. Nightingale's POST /datasource/status/update takes a single datasource ({id, status}), so a batch is issued as one request per id.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Set Datasource Status",
 				ReadOnlyHint:    false,
@@ -249,12 +250,22 @@ func setDatasourceStatusTool(getClient client.GetClientFunc) toolset.ServerTool 
 			if c == nil {
 				return toolset.NewToolResultError("failed to get n9e client from context"), nil
 			}
-			body := map[string]any{"ids": input.Ids, "status": input.Status}
-			result, err := client.DoPost[any](c, ctx, "/api/n9e/datasource/status/update", body)
-			if err != nil {
-				return toolset.NewToolResultError(err.Error()), nil
+			// Nightingale binds a single models.Datasource ({id, status}) on
+			// /datasource/status/update and updates that one row, so a batch has to be
+			// issued as one request per datasource. Posting {"ids": [...]} binds a zero
+			// id, updates no rows, and still answers HTTP 200 , a silent no-op.
+			updated := make([]int64, 0, len(input.Ids))
+			for _, id := range input.Ids {
+				body := map[string]any{"id": id, "status": input.Status}
+				if _, err := client.DoPost[any](c, ctx, "/api/n9e/datasource/status/update", body); err != nil {
+					return toolset.NewToolResultError(fmt.Sprintf("datasource %d: %v", id, err)), nil
+				}
+				updated = append(updated, id)
 			}
-			return toolset.MarshalResult(map[string]any{"result": result}), nil
+			return toolset.MarshalResult(map[string]any{
+				"ids":    updated,
+				"status": input.Status,
+			}), nil
 		}),
 	)
 }

@@ -1,9 +1,113 @@
 package types
 
-// N9eResponse represents Nightingale unified response format
-type N9eResponse[T any] struct {
-	Dat T      `json:"dat"`
-	Err string `json:"err"`
+import (
+	"encoding/json"
+	"strings"
+)
+
+// N9eResponse is Nightingale's response envelope.
+//
+// Nightingale renders responses with two different helpers, and both spellings
+// are in use across the API surface:
+//
+//	ginx.NewRender(c).Data(x) -> {"dat": x, "err": "", "request_id": "..."}
+//	router.Render(c, x, err)  -> {"data": x, "error": ""}         (success)
+//	                             {"error": {"message": "..."}}   (business error)
+//
+// The second form is what the datasource router answers with (list, desc,
+// plugin/list, upsert, status/update), so a decoder that only knows
+// "dat"/"err" reads a zero payload and never sees the business error.
+// Both envelopes are decoded here.
+type N9eResponse struct {
+	Dat   json.RawMessage `json:"dat"`
+	Err   string          `json:"err"`
+	Data  json.RawMessage `json:"data"`
+	Error json.RawMessage `json:"error"`
+}
+
+// Payload returns the response body from whichever envelope the server used,
+// or nil when the response carries no body ({"dat":null} and friends).
+func (r N9eResponse) Payload() json.RawMessage {
+	if p := presentRaw(r.Dat); p != nil {
+		return p
+	}
+	return presentRaw(r.Data)
+}
+
+// BusinessError returns the server-side error message, or "" when the call
+// succeeded. Nightingale reports business errors on an HTTP 200 response, as
+// either `err` (ginx renderer) or `error` (router.Render).
+func (r N9eResponse) BusinessError() string {
+	if r.Err != "" {
+		return r.Err
+	}
+	return errorMessage(r.Error)
+}
+
+// errorMessage extracts the readable message from router.Render's `error`
+// value. Nightingale passes whatever the handler had , usually a string, but
+// it forwards Go errors too, which json encodes as an object:
+//
+//	{"error": "boom"}                             -> boom
+//	{"error": {"message": "boom"}}                -> boom
+//	{"error": {"message": {"Message": "boom"}}}   -> boom  (e.g. a MySQL error)
+//	{"error": ""} | {} | {"error": null}          -> ""    (success)
+//	{"error": {"message": {}}}                    -> the raw object, so a
+//	                                                failure never reads as success
+func errorMessage(raw json.RawMessage) string {
+	raw = presentRaw(raw)
+	if raw == nil {
+		return ""
+	}
+
+	// {"error": "boom"}
+	if msg, ok := jsonString(raw); ok {
+		return msg
+	}
+
+	var wrapped struct {
+		Message json.RawMessage `json:"message"`
+	}
+	if err := json.Unmarshal(raw, &wrapped); err == nil {
+		// {"error": {"message": "boom"}}
+		if msg, ok := jsonString(wrapped.Message); ok {
+			return msg
+		}
+
+		// A marshalled Go error, which n9e forwards unchanged:
+		// {"error": {"message": {"Message": "Duplicate entry ..."}}}.
+		var inner struct {
+			Message json.RawMessage `json:"Message"`
+		}
+		if err := json.Unmarshal(wrapped.Message, &inner); err == nil && len(inner.Message) > 0 {
+			if msg, ok := jsonString(inner.Message); ok {
+				return msg
+			}
+		}
+	}
+
+	// No usable message (gin bind failures answer {"error":{"message":{}}}):
+	// return the raw value so the caller still sees a failure instead of a
+	// silent success.
+	return string(raw)
+}
+
+// jsonString reports whether raw holds a JSON string, and returns it.
+func jsonString(raw json.RawMessage) (string, bool) {
+	var s string
+	if err := json.Unmarshal(raw, &s); err != nil {
+		return "", false
+	}
+	return s, true
+}
+
+// presentRaw treats an absent, null or empty raw value as no value.
+func presentRaw(raw json.RawMessage) json.RawMessage {
+	switch strings.TrimSpace(string(raw)) {
+	case "", "null":
+		return nil
+	}
+	return raw
 }
 
 // PageResp represents paginated response
