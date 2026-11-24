@@ -32,7 +32,7 @@ func listBusiGroupsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_busi_groups",
-			Description: "List all business groups that the current user has access to",
+			Description: "Discover business groups that own monitoring targets, alert rules, mutes, subscriptions and dashboards. Use the returned IDs with tools such as list_alert_rules or use list_user_groups for user teams. This read-only lookup returns {list, total} with IDs and names in name order, paginated locally at 20 per page by default. Nightingale supplies at most 300 groups and scopes non-admin results to their associated groups.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Business Groups",
 				ReadOnlyHint: true,
@@ -42,11 +42,11 @@ func listBusiGroupsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},

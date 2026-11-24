@@ -39,7 +39,7 @@ func listRolesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_roles",
-			Description: "List all roles defined in the system.",
+			Description: "Discover Nightingale RBAC roles and obtain names for user profile assignments or IDs for permission lookup. Use list_role_operations to inspect one role's grants or list_operations to browse available permissions. This read-only lookup returns an unpaginated array of role IDs, names and notes for signed-in callers.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Roles",
 				ReadOnlyHint: true,
@@ -64,7 +64,7 @@ func listOperationsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_operations",
-			Description: "List every operation (permission) the system understands.",
+			Description: "Browse the configured permission operations available for role assignment. Use list_role_operations to see the permission names assigned to one role or list_roles to discover role IDs. This read-only lookup returns an unpaginated array of groups with nested ops entries containing operation names and display labels.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Operations",
 				ReadOnlyHint: true,
@@ -93,7 +93,7 @@ func listRoleOperationsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_role_operations",
-			Description: "List operations bound to a specific role.",
+			Description: "Inspect the permission operation names assigned to one role. Use list_operations for the grouped catalog of available permissions or list_roles to discover role IDs. This read-only lookup requires the roles permission and returns a flat list of operation names, with the full configured operation set for the built-in Admin role.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Role Operations",
 				ReadOnlyHint: true,
@@ -102,7 +102,7 @@ func listRoleOperationsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"id"},
 				Properties: map[string]*jsonschema.Schema{
-					"id": {Type: "integer", Description: "Role ID"},
+					"id": {Type: "integer", Description: "Positive role ID from list_roles."},
 				},
 			},
 		},
@@ -131,7 +131,7 @@ func createRoleTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "create_role",
-			Description: "Create a new role.",
+			Description: "Add a named RBAC role to Nightingale. Use update_role to rename an existing role or bind_role_operations to change its permissions. Nightingale rejects a duplicate role name. Use list_roles to look up the new role ID.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Role",
 				ReadOnlyHint:    false,
@@ -141,7 +141,7 @@ func createRoleTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"role"},
 				Properties: map[string]*jsonschema.Schema{
-					"role": {Type: "object", Description: "Role body (name, note)"},
+					"role": {Type: "object", Description: "Role object with a unique name and optional note."},
 				},
 			},
 		},
@@ -170,7 +170,7 @@ func updateRoleTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "update_role",
-			Description: "Update a role's metadata (PUT /roles).",
+			Description: "Replace the stored name and note for a role. Use bind_role_operations to change operation grants or create_role to add a new role. Nightingale rejects changes to the built-in Admin role and duplicate names.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Role",
 				ReadOnlyHint:    false,
@@ -180,7 +180,7 @@ func updateRoleTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"role"},
 				Properties: map[string]*jsonschema.Schema{
-					"role": {Type: "object", Description: "Role body including id"},
+					"role": {Type: "object", Description: "Role object with id from list_roles, the desired name and the note to store."},
 				},
 			},
 		},
@@ -207,7 +207,7 @@ func bindRoleOperationsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "bind_role_operations",
-			Description: "Replace the operations bound to a role (PUT /role/{id}/ops). Send the full ops list, not a delta.",
+			Description: "Submit a replacement set of permission grants for a role. Use list_role_operations to read current grants and list_operations to find valid grant names. This tool sends an object containing ops, which Nightingale versions that require a top-level array will reject.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Bind Role Operations",
 				ReadOnlyHint:    false,
@@ -217,8 +217,8 @@ func bindRoleOperationsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"id", "ops"},
 				Properties: map[string]*jsonschema.Schema{
-					"id":  {Type: "integer", Description: "Role ID"},
-					"ops": {Type: "array", Items: &jsonschema.Schema{Type: "string"}, Description: "Operation names"},
+					"id":  {Type: "integer", Description: "Positive role ID from list_roles."},
+					"ops": {Type: "array", Items: &jsonschema.Schema{Type: "string"}, Description: "Complete replacement array of operation names from list_operations."},
 				},
 			},
 		},
@@ -238,4 +238,3 @@ func bindRoleOperationsTool(getClient client.GetClientFunc) toolset.ServerTool {
 		}),
 	)
 }
-

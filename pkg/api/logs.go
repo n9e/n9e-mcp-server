@@ -42,7 +42,7 @@ func queryLogsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "query_logs",
-			Description: "Query logs from a datasource (Loki/ES/OS) via n9e's plugin-dispatched /logs-query endpoint. Pass 'body' as the n9e query payload (must include datasource_id and the engine-specific query). Time range > 7 days is rejected.",
+			Description: "Retrieve matching log entries from a Nightingale log datasource, such as Loki, Elasticsearch or OpenSearch. Use list_log_indices or list_log_fields to discover Elasticsearch or OpenSearch metadata. This read-only query returns data with log rows in list and engine-reported counts summed in total, or an error when no rows match. When both top-level timestamps are supplied, the tool rejects windows longer than seven days.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Query Logs",
 				ReadOnlyHint: true,
@@ -51,10 +51,10 @@ func queryLogsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"body"},
 				Properties: map[string]*jsonschema.Schema{
-					"body":  {Type: "object", Description: "Log query body (matches n9e's /logs-query payload)"},
-					"limit": {Type: "integer", Description: "Cap on returned lines (default 200)"},
-					"start": {Type: "integer", Description: "Optional Unix-second start (used only for range validation)"},
-					"end":   {Type: "integer", Description: "Optional Unix-second end (used only for range validation)"},
+					"body":  {Type: "object", Description: "Supply numeric datasource_id from list_datasources, cate matching its plugin_type and query as an array of engine-specific query objects. For Loki, use a query object with a LogQL query, start, end and limit. For Elasticsearch or OpenSearch search, use index, date_field, filter, start, end and limit. Use Unix seconds for these time bounds."},
+					"limit": {Type: "integer", Description: "Optional top-level limit hint, default 200. Inserted into body only if body.limit is absent and echoed as limit in the response. Set the engine-specific row limit inside body.query to limit results."},
+					"start": {Type: "integer", Description: "Optional positive Unix-second start used with end for the seven-day validation. Set the actual start in body.query."},
+					"end":   {Type: "integer", Description: "Optional positive Unix-second end used with start for the seven-day validation. Set the actual end in body.query."},
 				},
 			},
 		},
@@ -103,7 +103,7 @@ func listLogIndicesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_log_indices",
-			Description: "List indices for an Elasticsearch (default) or OpenSearch datasource. Body must include datasource_id.",
+			Description: "Discover available index names on an Elasticsearch or OpenSearch datasource. Use list_log_fields to inspect an index's mapped fields or query_logs to retrieve entries. This read-only lookup returns the engine's index names without pagination and errors if the datasource cannot be resolved.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Log Indices",
 				ReadOnlyHint: true,
@@ -112,8 +112,8 @@ func listLogIndicesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"body"},
 				Properties: map[string]*jsonschema.Schema{
-					"body":   {Type: "object", Description: "Body (must include datasource_id)"},
-					"engine": {Type: "string", Description: "'es' (default) or 'os' for OpenSearch"},
+					"body":   {Type: "object", Description: "Supply numeric datasource_id from list_datasources and cate matching its plugin_type (elasticsearch or opensearch)."},
+					"engine": {Type: "string", Description: "Use es for Elasticsearch (default) or os for OpenSearch. Match the engine to the datasource plugin."},
 				},
 			},
 		},
@@ -142,7 +142,7 @@ func listLogFieldsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_log_fields",
-			Description: "List fields for an Elasticsearch (default) or OpenSearch index. Body must include datasource_id and the index name.",
+			Description: "Discover mapped field names for an Elasticsearch or OpenSearch index or pattern before building a log query. Use list_log_indices to find index names and query_logs to retrieve log entries. This read-only lookup returns a list of field names from the selected engine and errors if the datasource cannot be resolved.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Log Fields",
 				ReadOnlyHint: true,
@@ -151,8 +151,8 @@ func listLogFieldsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"body"},
 				Properties: map[string]*jsonschema.Schema{
-					"body":   {Type: "object"},
-					"engine": {Type: "string", Description: "'es' (default) or 'os' for OpenSearch"},
+					"body":   {Type: "object", Description: "Supply numeric datasource_id from list_datasources and cate matching its plugin_type (elasticsearch or opensearch). Set index to an index name from list_log_indices or an index pattern."},
+					"engine": {Type: "string", Description: "Use es for Elasticsearch (default) or os for OpenSearch. Match the engine to the datasource plugin."},
 				},
 			},
 		},

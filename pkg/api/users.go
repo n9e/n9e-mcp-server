@@ -64,7 +64,7 @@ func listUsersTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_users",
-			Description: "List users with optional filters",
+			Description: "Search the Nightingale user directory to find account IDs, contact details and assigned roles. Use get_user for a known account ID or get_user_group for a team's member roster. This read-only lookup requires the users permission and returns {list, total}, ordered by username ascending, with 20 accounts per page by default.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Users",
 				ReadOnlyHint: true,
@@ -74,15 +74,15 @@ func listUsersTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"query": {
 						Type:        "string",
-						Description: "Search keyword (matches username/nickname/email/phone)",
+						Description: "Optional substring search across username, nickname, email or phone. An empty string lists all accounts.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -118,7 +118,7 @@ func getUserTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_user",
-			Description: "Get details of a specific user by ID",
+			Description: "Look up one Nightingale account by numeric ID to inspect its profile, contact details and role names. Use list_users to search by name or contact details, or get_user_group to inspect team membership. This read-only lookup returns one profile for a signed-in caller.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get User",
 				ReadOnlyHint: true,
@@ -129,7 +129,7 @@ func getUserTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
-						Description: "User ID",
+						Description: "Positive user ID from list_users.",
 					},
 				},
 			},
@@ -159,7 +159,7 @@ func listUserGroupsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_user_groups",
-			Description: "List user groups/teams that the current user has access to",
+			Description: "Find Nightingale teams by name and obtain group IDs for membership or notification settings. Use get_user_group for the member roster or list_users to search individual accounts. This read-only lookup returns a list of group IDs, names and notes for all admin-visible matches, or groups the caller belongs to or created, with a default name-search limit of 1500.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List User Groups",
 				ReadOnlyHint: true,
@@ -169,11 +169,11 @@ func listUserGroupsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"query": {
 						Type:        "string",
-						Description: "Search keyword for group name",
+						Description: "Optional group-name substring. For admins, if no name matches, Nightingale also tries an exact username and returns that user's groups.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Maximum number of groups to return (default 1500)",
+						Description: "Maximum number of group-name matches to return, default 1500. The admin username fallback uses a separate lookup.",
 					},
 				},
 			},
@@ -206,7 +206,7 @@ func getUserGroupTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_user_group",
-			Description: "Get details of a specific user group including its members",
+			Description: "Inspect a team's membership by ID, including user IDs and profiles. Use list_user_groups to find the team or get_user to inspect a single account. This read-only lookup returns {user_group, users} for admins, the group creator or group members.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get User Group",
 				ReadOnlyHint: true,
@@ -217,7 +217,7 @@ func getUserGroupTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
-						Description: "User group ID",
+						Description: "Positive user group ID from list_user_groups.",
 					},
 				},
 			},
@@ -253,7 +253,7 @@ func createUserTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "create_user",
-			Description: "Create a new user. The body should at minimum include username, password, and roles.",
+			Description: "Create a Nightingale account with a password and explicit role assignments. Use update_user_profile to edit a saved account. Nightingale hashes the password before storage and requires a nonempty role list. Use list_users to find the new account ID.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create User",
 				ReadOnlyHint:    false,
@@ -263,7 +263,7 @@ func createUserTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"user"},
 				Properties: map[string]*jsonschema.Schema{
-					"user": {Type: "object", Description: "User body (username, password, roles, email, phone, ...)"},
+					"user": {Type: "object", Description: "Account object with username, password and a nonempty roles array of names from list_roles. Optional fields include nickname, email, phone, portrait and contacts. Supply an RSA-encrypted password if the server requires it."},
 				},
 			},
 		},
@@ -293,7 +293,7 @@ func updateUserProfileTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "update_user_profile",
-			Description: "Update a user's profile. The 'roles' field on the body assigns roles to the user (n9e v8 stores roles on the user row, no dedicated assign endpoint).",
+			Description: "Replace an existing account's editable profile fields and role assignments. Read get_user first to carry forward the values you want to keep. Use reset_user_password to change credentials. This write returns the account ID and a confirmation.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update User Profile",
 				ReadOnlyHint:    false,
@@ -303,8 +303,8 @@ func updateUserProfileTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"id", "profile"},
 				Properties: map[string]*jsonschema.Schema{
-					"id":      {Type: "integer", Description: "User ID"},
-					"profile": {Type: "object", Description: "Profile body (nickname, email, phone, roles, ...)"},
+					"id":      {Type: "integer", Description: "Positive user ID from list_users."},
+					"profile": {Type: "object", Description: "Object with nickname, email, phone, contacts and a nonempty roles array of names from list_roles. Omitted profile fields take their zero values in the update."},
 				},
 			},
 		},
@@ -334,7 +334,7 @@ func resetUserPasswordTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "reset_user_password",
-			Description: "Reset a user's password. Requires admin privileges on the n9e side.",
+			Description: "Replace the password stored for an existing Nightingale account. Use update_user_profile for profile details or role assignments. This write requires the users edit permission and returns the account ID and a confirmation.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Reset User Password",
 				ReadOnlyHint:    false,
@@ -344,8 +344,8 @@ func resetUserPasswordTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"id", "password"},
 				Properties: map[string]*jsonschema.Schema{
-					"id":       {Type: "integer"},
-					"password": {Type: "string", Description: "New password (will be hashed by n9e)"},
+					"id":       {Type: "integer", Description: "Positive user ID from list_users."},
+					"password": {Type: "string", Description: "Nonempty replacement password. Nightingale hashes it before storage. Supply it in the server's RSA-encrypted format when HTTP RSA is enabled."},
 				},
 			},
 		},
@@ -374,7 +374,7 @@ func createUserGroupTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "create_user_group",
-			Description: "Create a new user group (team).",
+			Description: "Save a new user group for team membership and notification routing. Nightingale attempts to add the caller as a member and returns the new group ID in result. Use add_user_group_members to add other users or update_user_group to edit an existing group's name or note.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create User Group",
 				ReadOnlyHint:    false,
@@ -384,7 +384,7 @@ func createUserGroupTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group"},
 				Properties: map[string]*jsonschema.Schema{
-					"group": {Type: "object", Description: "Group body (name, note, ...)"},
+					"group": {Type: "object", Description: "Team object with a name and optional note. Set is_sync_to_flashduty to true to request FlashDuty team synchronization."},
 				},
 			},
 		},
@@ -411,7 +411,7 @@ func updateUserGroupTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "update_user_group",
-			Description: "Update a user group's metadata (name, note).",
+			Description: "Replace a team's saved name and note. Use add_user_group_members for a membership change or get_user_group to inspect the roster. Nightingale allows this write for admins, the group creator or group members and rejects a conflicting name.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update User Group",
 				ReadOnlyHint:    false,
@@ -421,8 +421,8 @@ func updateUserGroupTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"id", "group"},
 				Properties: map[string]*jsonschema.Schema{
-					"id":    {Type: "integer"},
-					"group": {Type: "object"},
+					"id":    {Type: "integer", Description: "Positive user group ID from list_user_groups."},
+					"group": {Type: "object", Description: "Object with the desired name and note. An omitted note is stored as empty. Set is_sync_to_flashduty to true to request FlashDuty team synchronization."},
 				},
 			},
 		},
@@ -452,7 +452,7 @@ func addUserGroupMembersTool(getClient client.GetClientFunc) toolset.ServerTool 
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "add_user_group_members",
-			Description: "Add user(s) to a user group.",
+			Description: "Add existing Nightingale accounts to a team. Use create_user for accounts that do not exist and get_user_group to verify membership. This write returns the submitted ID count as added.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Add User Group Members",
 				ReadOnlyHint:    false,
@@ -462,8 +462,8 @@ func addUserGroupMembersTool(getClient client.GetClientFunc) toolset.ServerTool 
 				Type:     "object",
 				Required: []string{"id", "ids"},
 				Properties: map[string]*jsonschema.Schema{
-					"id":  {Type: "integer", Description: "User group ID"},
-					"ids": {Type: "array", Items: &jsonschema.Schema{Type: "integer"}, Description: "User IDs to add"},
+					"id":  {Type: "integer", Description: "Positive user group ID from list_user_groups."},
+					"ids": {Type: "array", Items: &jsonschema.Schema{Type: "integer"}, Description: "Nonempty array of user IDs from list_users."},
 				},
 			},
 		},

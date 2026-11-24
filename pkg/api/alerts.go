@@ -96,7 +96,7 @@ func listActiveAlertsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_active_alerts",
-			Description: "List active alert events with optional filters. Use this to view currently firing alerts.",
+			Description: "Find currently firing alert events, optionally filtering by rule, severity or trigger time. Use list_history_alerts to search stored events including recoveries, or get_active_alert for one active event. This read-only lookup returns {list, total} with event IDs, rule names, severity and tags, newest trigger first, with 20 events per page by default. Nightingale can restrict results to the caller's business groups.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Active Alerts",
 				ReadOnlyHint: true,
@@ -106,51 +106,51 @@ func listActiveAlertsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"hours": {
 						Type:        "integer",
-						Description: "Lookback hours (mutually exclusive with stime/etime)",
+						Description: "Positive lookback in hours. Nightingale sets the start to now minus this value and the end to now plus 24 hours. Provide either hours or absolute times.",
 					},
 					"stime": {
 						Type:        "integer",
-						Description: "Start time Unix timestamp",
+						Description: "Inclusive start of the trigger-time window in Unix seconds. Omit hours, stime and etime to include all trigger times.",
 					},
 					"etime": {
 						Type:        "integer",
-						Description: "End time Unix timestamp",
+						Description: "End of the window in Unix seconds, inclusive. Defaults to now plus 24 hours when stime is supplied. If set with stime, it must be later. The active alert list needs a start time to apply this boundary.",
 					},
 					"severity": {
 						Type:        "string",
-						Description: "Severity levels comma-separated (1=critical, 2=warning, 3=info)",
+						Description: "Comma-separated severity levels. Use 1 for critical, 2 for warning and 3 for info. Omit for every severity.",
 					},
 					"query": {
 						Type:        "string",
-						Description: "Search keyword (matches rule name/tags)",
+						Description: "Space-separated terms. Each term must match part of the rule name or tags. Omit for no text filter.",
 					},
 					"cate": {
 						Type:        "string",
-						Description: "Alert category (prometheus/host/elasticsearch, default $all)",
+						Description: "Comma-separated event categories, such as prometheus, host, elasticsearch or loki. Omit or use $all for every category.",
 					},
 					"rule_prods": {
 						Type:        "string",
-						Description: "Product types comma-separated (host/metric/loki/anomaly)",
+						Description: "Comma-separated rule products, such as metric, host, loki or anomaly. Omit for every product.",
 					},
 					"datasource_ids": {
 						Type:        "string",
-						Description: "Datasource IDs comma-separated",
+						Description: "Comma-separated datasource IDs from list_datasources. Omit for every datasource.",
 					},
 					"rid": {
 						Type:        "integer",
-						Description: "Alert rule ID",
+						Description: "Positive alert rule ID from list_alert_rules. Omit for events from any rule.",
 					},
 					"bgid": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive business group ID from list_busi_groups. Omit to use the server's default business group scope.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -225,7 +225,7 @@ func getActiveAlertTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_active_alert",
-			Description: "Get details of a specific active alert event by ID",
+			Description: "Inspect one currently firing event for triage, including its rule, severity, tags, trigger value and claimant when present. Use list_active_alerts to find its ID or get_history_alert if the event has recovered. This read-only lookup returns one current event and checks access to its business group unless Nightingale allows anonymous or shared detail access.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Active Alert",
 				ReadOnlyHint: true,
@@ -236,7 +236,7 @@ func getActiveAlertTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"eid": {
 						Type:        "integer",
-						Description: "Alert event ID",
+						Description: "Positive current event ID from list_active_alerts. Use the event's id field.",
 					},
 				},
 			},
@@ -266,7 +266,7 @@ func listHistoryAlertsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_history_alerts",
-			Description: "List historical alert events with optional filters",
+			Description: "Search stored alert events, including recovered events, by last evaluation time. Provide hours or an absolute time window, or use list_active_alerts to investigate currently firing alerts. This read-only lookup returns {list, total} with event IDs, severity and recovery fields, ordered by last evaluation time then ID descending. Pages default to 20, and Nightingale can restrict the list to the caller's business groups.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List History Alerts",
 				ReadOnlyHint: true,
@@ -276,51 +276,51 @@ func listHistoryAlertsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"hours": {
 						Type:        "integer",
-						Description: "Lookback hours",
+						Description: "Positive lookback in hours. Nightingale sets the start to now minus this value and the end to now plus 24 hours. Provide either hours or absolute times.",
 					},
 					"stime": {
 						Type:        "integer",
-						Description: "Start time Unix timestamp",
+						Description: "Start of the last-evaluation-time window in Unix seconds, inclusive. Defaults to 0 when no lookback is given. Supply stime or hours to search a recent window.",
 					},
 					"etime": {
 						Type:        "integer",
-						Description: "End time Unix timestamp",
+						Description: "End of the window in Unix seconds, inclusive. Defaults to now plus 24 hours when stime is supplied. If set with stime, it must be later.",
 					},
 					"severity": {
 						Type:        "integer",
-						Description: "Severity level (-1=all, 1=critical, 2=warning, 3=info)",
+						Description: "One severity level. Use 1 for critical, 2 for warning, 3 for info or -1 for all. Omission and 0 also select all.",
 					},
 					"is_recovered": {
 						Type:        "integer",
-						Description: "Recovery status (-1=all, 0=not recovered, 1=recovered)",
+						Description: "Use 1 for recovered events or -1 for all events. The tool omits 0 when calling Nightingale, so 0 also selects all. For unrecovered records, filter the returned is_recovered field for 0.",
 					},
 					"query": {
 						Type:        "string",
-						Description: "Search keyword",
+						Description: "Space-separated terms. Each term must match part of the rule name or tags. Omit for no text filter.",
 					},
 					"cate": {
 						Type:        "string",
-						Description: "Alert category",
+						Description: "Comma-separated event categories, such as prometheus, host, elasticsearch or loki. Omit or use $all for every category.",
 					},
 					"rule_prods": {
 						Type:        "string",
-						Description: "Product types comma-separated",
+						Description: "Comma-separated rule products, such as metric, host, loki or anomaly. Omit for every product.",
 					},
 					"datasource_ids": {
 						Type:        "string",
-						Description: "Datasource IDs comma-separated",
+						Description: "Comma-separated datasource IDs from list_datasources. Omit for every datasource.",
 					},
 					"bgid": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive business group ID from list_busi_groups. Omit to use the server's default business group scope.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -390,7 +390,7 @@ func getHistoryAlertTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_history_alert",
-			Description: "Get details of a specific historical alert event by ID",
+			Description: "Inspect one stored alert event by history ID, including recorded trigger values, tags and recovery status or timestamp. Use list_history_alerts to find the ID or get_active_alert to check a currently firing event. This read-only lookup returns one event or a not-found error and checks access to the owning business group unless Nightingale allows anonymous or shared detail access.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get History Alert",
 				ReadOnlyHint: true,
@@ -401,7 +401,7 @@ func getHistoryAlertTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"eid": {
 						Type:        "integer",
-						Description: "Alert event ID",
+						Description: "Positive history event ID from list_history_alerts. Use the event's id field.",
 					},
 				},
 			},
@@ -431,7 +431,7 @@ func listAlertRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_alert_rules",
-			Description: "List alert rules for a business group",
+			Description: "Find the rules that evaluate conditions and generate alerts in one business group. Use get_alert_rule to inspect one known rule or list_active_alerts to see events that are firing. This read-only lookup requires the alert rules permission and returns {list, total} with rule IDs, names and configuration, sorted by name and paginated locally at 20 per page by default.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Alert Rules",
 				ReadOnlyHint: true,
@@ -442,15 +442,15 @@ func listAlertRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"group_id": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive business group ID from list_busi_groups.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -481,7 +481,7 @@ func getAlertRuleTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_alert_rule",
-			Description: "Get details of a specific alert rule by ID",
+			Description: "Inspect the configured query, evaluation settings and notification routing for a single alert rule. Use list_alert_rules to discover rules in a group, or get_active_alert to inspect a firing event produced by a rule. This read-only lookup requires the alert rules permission and returns one rule object, or an error if the ID is unknown.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Alert Rule",
 				ReadOnlyHint: true,
@@ -492,7 +492,7 @@ func getAlertRuleTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"arid": {
 						Type:        "integer",
-						Description: "Alert rule ID",
+						Description: "Positive alert rule ID from list_alert_rules.",
 					},
 				},
 			},
@@ -532,7 +532,7 @@ func createAlertRuleTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "create_alert_rule",
-			Description: "Create a new alert rule in a business group. Pass the full rule body in 'rule' (mirror the structure returned by get_alert_rule, omit id/create_at/update_at).",
+			Description: "Save a new alert evaluation rule in one business group. Use update_alert_rule to change an existing rule or import_prom_rules for a Prometheus rule file. Requires write access to the group. Inspect result for rule-level validation or save errors.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Alert Rule",
 				ReadOnlyHint:    false,
@@ -542,10 +542,10 @@ func createAlertRuleTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group_id", "rule"},
 				Properties: map[string]*jsonschema.Schema{
-					"group_id": {Type: "integer", Description: "Business group ID"},
+					"group_id": {Type: "integer", Description: "Positive business group ID from list_busi_groups."},
 					"rule": {
 						Type:        "object",
-						Description: "Full alert rule body. Must include name, prod, cate, severity, and rule_config / prom_ql appropriate for the rule kind.",
+						Description: "Nightingale rule configuration. Include name and rule_config with a query and evaluation settings for the rule kind. Nightingale defaults prod to metric, cate to prometheus and prom_eval_interval to 15 seconds. Use get_alert_rule for a working example and omit its ID and audit fields.",
 					},
 				},
 			},
@@ -587,7 +587,7 @@ func updateAlertRuleTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "update_alert_rule",
-			Description: "Update an existing alert rule. Pass the full rule body (typically: get_alert_rule, modify fields, then submit).",
+			Description: "Replace the saved configuration of one alert rule. Start from get_alert_rule and submit the edited configuration. Use toggle_alert_rules for an enable or disable change across rules. Nightingale checks write access to the rule's owning group.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Alert Rule",
 				ReadOnlyHint:    false,
@@ -597,9 +597,9 @@ func updateAlertRuleTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group_id", "arid", "rule"},
 				Properties: map[string]*jsonschema.Schema{
-					"group_id": {Type: "integer", Description: "Business group ID owning the rule"},
-					"arid":     {Type: "integer", Description: "Alert rule ID"},
-					"rule":     {Type: "object", Description: "Full rule body"},
+					"group_id": {Type: "integer", Description: "Positive business group ID from list_busi_groups. Use the group that owns the rule."},
+					"arid":     {Type: "integer", Description: "Positive alert rule ID from list_alert_rules."},
+					"rule":     {Type: "object", Description: "Full edited rule configuration based on get_alert_rule. Include the query, evaluation settings and notification configuration you want to keep."},
 				},
 			},
 		},
@@ -639,7 +639,7 @@ func importAlertRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "import_alert_rules",
-			Description: "Bulk import alert rules into a business group from a JSON array (matches the n9e import format).",
+			Description: "Bulk-create rules from Nightingale alert-rule objects in one business group. Use import_prom_rules for a Prometheus rule file or create_alert_rule for a single newly authored rule. Nightingale converts imported rules to the new notification configuration and returns rule-level errors in result.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Import Alert Rules",
 				ReadOnlyHint:    false,
@@ -649,10 +649,10 @@ func importAlertRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group_id", "rules"},
 				Properties: map[string]*jsonschema.Schema{
-					"group_id": {Type: "integer", Description: "Business group ID"},
+					"group_id": {Type: "integer", Description: "Positive business group ID from list_busi_groups."},
 					"rules": {
 						Type:        "array",
-						Description: "Array of rule bodies",
+						Description: "Nonempty array of Nightingale rule objects. Use list_alert_rules or get_alert_rule for the field layout. Rules without datasource_queries default to all datasources of the relevant category.",
 						Items:       &jsonschema.Schema{Type: "object"},
 					},
 				},
@@ -696,7 +696,7 @@ func importPromRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "import_prom_rules",
-			Description: "Import Prometheus alerting rules (YAML or JSON) into a business group. Wraps n9e's /alert-rules/import-prom-rule endpoint.",
+			Description: "Convert Prometheus alerting rules and save them as Nightingale rules in one business group. Use import_alert_rules for Nightingale-format rule objects. Check result for rule-level errors after the import.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Import Prometheus Rules",
 				ReadOnlyHint:    false,
@@ -706,10 +706,10 @@ func importPromRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group_id", "payload"},
 				Properties: map[string]*jsonschema.Schema{
-					"group_id":           {Type: "integer", Description: "Business group ID"},
-					"payload":            {Type: "string", Description: "Raw Prometheus rules YAML/JSON"},
-					"datasource_queries": {Description: "Datasource selector (matches the FE wizard payload)"},
-					"disabled":           {Type: "integer", Description: "Create rules disabled (0 = enabled, 1 = disabled)"},
+					"group_id":           {Type: "integer", Description: "Positive business group ID from list_busi_groups."},
+					"payload":            {Type: "string", Description: "Raw Prometheus rule file as a YAML or JSON string with a top-level groups array."},
+					"datasource_queries": {Description: "Datasource selectors required by Nightingale for the imported rules. For exact IDs from list_datasources, use an array of objects with match_type 0, op in and numeric IDs in values."},
+					"disabled":           {Type: "integer", Description: "Initial rule state. Use 0 for enabled (default) or 1 for disabled."},
 				},
 			},
 		},
@@ -751,7 +751,7 @@ func cloneAlertRulesToBgsTool(getClient client.GetClientFunc) toolset.ServerTool
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "clone_alert_rules_to_bgs",
-			Description: "Clone the given alert rules into one or more target business groups.",
+			Description: "Create copies of existing alert rules in one or more destination business groups. Use import_alert_rules when the source is a set of Nightingale rule objects. Nightingale checks destination write access and returns per-copy errors in result, keyed by source rule and destination group IDs.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Clone Alert Rules to Business Groups",
 				ReadOnlyHint:    false,
@@ -761,8 +761,8 @@ func cloneAlertRulesToBgsTool(getClient client.GetClientFunc) toolset.ServerTool
 				Type:     "object",
 				Required: []string{"rule_ids", "bgids"},
 				Properties: map[string]*jsonschema.Schema{
-					"rule_ids": {Type: "array", Description: "Source rule IDs", Items: &jsonschema.Schema{Type: "integer"}},
-					"bgids":    {Type: "array", Description: "Target business group IDs", Items: &jsonschema.Schema{Type: "integer"}},
+					"rule_ids": {Type: "array", Description: "Nonempty array of source alert rule IDs from list_alert_rules.", Items: &jsonschema.Schema{Type: "integer"}},
+					"bgids":    {Type: "array", Description: "Nonempty array of destination business group IDs from list_busi_groups.", Items: &jsonschema.Schema{Type: "integer"}},
 				},
 			},
 		},
@@ -800,7 +800,7 @@ func toggleAlertRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "toggle_alert_rules",
-			Description: "Enable or disable a batch of alert rules. Uses n9e's PUT .../alert-rules/fields with {disabled:0|1}.",
+			Description: "Enable or disable evaluation for selected alert rules in one business group. Use update_alert_rule to change the query or notification settings. This writes the disabled flag and returns the requested state and number of submitted IDs.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Toggle Alert Rules",
 				ReadOnlyHint:    false,
@@ -810,9 +810,9 @@ func toggleAlertRulesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group_id", "ids", "disabled"},
 				Properties: map[string]*jsonschema.Schema{
-					"group_id": {Type: "integer", Description: "Business group ID"},
-					"ids":      {Type: "array", Description: "Alert rule IDs", Items: &jsonschema.Schema{Type: "integer"}},
-					"disabled": {Type: "integer", Description: "0 = enable, 1 = disable"},
+					"group_id": {Type: "integer", Description: "Positive business group ID from list_busi_groups. Use the group that owns the rules."},
+					"ids":      {Type: "array", Description: "Nonempty array of IDs from list_alert_rules for that group.", Items: &jsonschema.Schema{Type: "integer"}},
+					"disabled": {Type: "integer", Description: "Use 0 to enable rule evaluation or 1 to disable it."},
 				},
 			},
 		},

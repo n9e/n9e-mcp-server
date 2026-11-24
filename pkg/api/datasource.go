@@ -44,7 +44,7 @@ func listDatasourcesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_datasources",
-			Description: "List all available datasources (sanitized brief view — no auth secrets)",
+			Description: "Discover datasource IDs and plugin types for metric or log queries using Nightingale's redacted catalog. Use list_datasources_full to inspect connection configuration across sources or get_datasource for one source's admin configuration. This read-only lookup returns {list, total} in descending ID order, paginated locally at 20 per page by default, with datasource visibility determined by Nightingale.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Datasources",
 				ReadOnlyHint: true,
@@ -52,8 +52,8 @@ func listDatasourcesTool(getClient client.GetClientFunc) toolset.ServerTool {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
-					"limit": {Type: "integer", Description: "Page size (default 20)"},
-					"p":     {Type: "integer", Description: "Page number (starts from 1)"},
+					"limit": {Type: "integer", Description: "Number of records per page. Defaults to 20."},
+					"p":     {Type: "integer", Description: "1-based page number. Defaults to 1."},
 				},
 			},
 		},
@@ -82,7 +82,7 @@ func listDatasourcesFullTool(getClient client.GetClientFunc) toolset.ServerTool 
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_datasources_full",
-			Description: "List datasources with full configuration including auth (admin perspective). Pass an optional filter body matching n9e's /datasource/list payload.",
+			Description: "Inspect connection and plugin configuration across datasources, optionally filtered by plugin type or category. Use list_datasources for redacted ID discovery or get_datasource for one known source's admin configuration. This read-only lookup returns an unpaginated configuration array in descending ID order after server-side visibility filtering. Nightingale redacts secrets for non-admin callers and may expose credentials to admins.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Datasources (Full)",
 				ReadOnlyHint: true,
@@ -90,7 +90,7 @@ func listDatasourcesFullTool(getClient client.GetClientFunc) toolset.ServerTool 
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
-					"body": {Type: "object", Description: "Optional filter body (e.g. plugin types, name search)"},
+					"body": {Type: "object", Description: "Optional filter object. Omit for an unfiltered request. Use plugin_type and category values from list_datasource_plugins. This Nightingale source compares name for equality after adding percent signs, so leave name unset for ordinary names and filter the returned array."},
 				},
 			},
 		},
@@ -120,7 +120,7 @@ func getDatasourceTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_datasource",
-			Description: "Get full configuration of a single datasource by ID (POST /datasource/desc).",
+			Description: "Inspect one datasource's saved connection, authentication and plugin settings by ID. Use list_datasources for redacted discovery or list_datasources_full to inspect configurations across multiple sources. This read-only lookup requires Nightingale admin access and returns a configuration object that can contain credentials.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Datasource",
 				ReadOnlyHint: true,
@@ -129,7 +129,7 @@ func getDatasourceTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"id"},
 				Properties: map[string]*jsonschema.Schema{
-					"id": {Type: "integer", Description: "Datasource ID"},
+					"id": {Type: "integer", Description: "Positive datasource ID from list_datasources."},
 				},
 			},
 		},
@@ -154,7 +154,7 @@ func listDatasourcePluginsTool(getClient client.GetClientFunc) toolset.ServerToo
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_datasource_plugins",
-			Description: "List supported datasource plugin types (Prometheus, Loki, ES, Tencent CLS, ...).",
+			Description: "Discover the datasource plugin types configured in Nightingale before filtering sources or choosing a plugin for upsert_datasource. Use list_datasources to find existing datasource instances. This read-only lookup returns an unpaginated catalog with plugin IDs, categories, type keys and display names.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Datasource Plugins",
 				ReadOnlyHint: true,
@@ -183,7 +183,7 @@ func upsertDatasourceTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "upsert_datasource",
-			Description: "Create or update a datasource. n9e runs a connectivity check as part of upsert — a successful response implies the datasource is reachable. Omit 'id' to create.",
+			Description: "Save a new datasource or update an existing datasource's connection settings as a Nightingale admin. Use set_datasource_status for a status-only change. Nightingale may test connectivity depending on plugin and force_save. Inspect result for the datasource ID and verification status.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Upsert Datasource",
 				ReadOnlyHint:    false,
@@ -193,7 +193,7 @@ func upsertDatasourceTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"datasource"},
 				Properties: map[string]*jsonschema.Schema{
-					"datasource": {Type: "object", Description: "Datasource body (matches the shape returned by get_datasource)"},
+					"datasource": {Type: "object", Description: "Datasource object with name, plugin_type, category and plugin-specific settings, http and auth. Omit id to create or use an ID from list_datasources to update. Use get_datasource for the existing shape and list_datasource_plugins for plugin keys. Set force_save to true to skip normal connectivity checks where supported."},
 				},
 			},
 		},
@@ -223,7 +223,7 @@ func setDatasourceStatusTool(getClient client.GetClientFunc) toolset.ServerTool 
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "set_datasource_status",
-			Description: "Enable or disable one or more datasources (POST /datasource/status/update).",
+			Description: "Submit an admin request to set datasource status to enabled or disabled. Use upsert_datasource to edit connection settings. This tool sends an ids array, so Nightingale versions that require a single id do not support this batch request format.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Set Datasource Status",
 				ReadOnlyHint:    false,
@@ -233,8 +233,8 @@ func setDatasourceStatusTool(getClient client.GetClientFunc) toolset.ServerTool 
 				Type:     "object",
 				Required: []string{"ids", "status"},
 				Properties: map[string]*jsonschema.Schema{
-					"ids":    {Type: "array", Items: &jsonschema.Schema{Type: "integer"}, Description: "Datasource IDs"},
-					"status": {Type: "string", Description: "'enabled' or 'disabled'"},
+					"ids":    {Type: "array", Items: &jsonschema.Schema{Type: "integer"}, Description: "Nonempty array of datasource IDs from list_datasources."},
+					"status": {Type: "string", Description: "Use enabled to activate or disabled to deactivate the selected sources."},
 				},
 			},
 		},
@@ -258,4 +258,3 @@ func setDatasourceStatusTool(getClient client.GetClientFunc) toolset.ServerTool 
 		}),
 	)
 }
-

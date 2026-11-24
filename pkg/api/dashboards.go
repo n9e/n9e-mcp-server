@@ -50,7 +50,7 @@ func listDashboardsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_dashboards",
-			Description: "List dashboards. Pass group_id for a single business group, or gids (comma-separated) to query multiple.",
+			Description: "Find dashboards by owning business group, name or tags and obtain their IDs. Use get_dashboard for one dashboard with its saved panels or get_dashboard_pure for the stored metadata row. This read-only lookup returns an unpaginated metadata array. Nightingale checks access to requested groups and defaults to the caller's groups, or all groups for admins.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Dashboards",
 				ReadOnlyHint: true,
@@ -58,9 +58,9 @@ func listDashboardsTool(getClient client.GetClientFunc) toolset.ServerTool {
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
-					"group_id": {Type: "integer", Description: "Business group ID (single)"},
-					"gids":     {Type: "string", Description: "Comma-separated business group IDs (multi)"},
-					"query":    {Type: "string", Description: "Optional name search"},
+					"group_id": {Type: "integer", Description: "Positive business group ID from list_busi_groups. A positive value selects the single-group lookup and takes precedence over gids."},
+					"gids":     {Type: "string", Description: "Comma-separated business group IDs from list_busi_groups. Used when group_id is omitted or nonpositive. Omit both for the caller's default group scope."},
+					"query":    {Type: "string", Description: "Optional space-separated terms that match the dashboard name or tags. Prefix a term with - to exclude matching dashboards."},
 				},
 			},
 		},
@@ -104,7 +104,7 @@ func getDashboardTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_dashboard",
-			Description: "Get a dashboard's metadata by ID. Use get_dashboard_pure if you also need the panel configs.",
+			Description: "Load a dashboard as served to viewers, including its saved panel configuration in configs when present. Use this to inspect panels or back up their configuration, and use get_dashboard_pure for the stored dashboard row without loading the separate panel payload. This read-only lookup applies Nightingale's dashboard visibility rules and uses a 10 MiB response budget.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Dashboard",
 				ReadOnlyHint: true,
@@ -113,7 +113,7 @@ func getDashboardTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"bid"},
 				Properties: map[string]*jsonschema.Schema{
-					"bid": {Type: "integer", Description: "Board ID"},
+					"bid": {Type: "integer", Description: "Positive dashboard ID from list_dashboards. Nightingale tries the numeric value as an identifier before looking up the row ID."},
 				},
 			},
 		},
@@ -138,7 +138,7 @@ func getDashboardPureTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_dashboard_pure",
-			Description: "Get a dashboard including its full panel JSON. Uses an extended response size cap (64MB) — large boards return their entire layout.",
+			Description: "Read the stored dashboard metadata row directly by numeric ID, including name, tags and visibility. Use get_dashboard for the viewer payload with saved panels. This authenticated, read-only lookup omits configs and the creator and updater names.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Dashboard (Full Panels)",
 				ReadOnlyHint: true,
@@ -147,7 +147,7 @@ func getDashboardPureTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"bid"},
 				Properties: map[string]*jsonschema.Schema{
-					"bid": {Type: "integer", Description: "Board ID"},
+					"bid": {Type: "integer", Description: "Positive dashboard ID from list_dashboards."},
 				},
 			},
 		},
@@ -179,7 +179,7 @@ func createDashboardTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "create_dashboard",
-			Description: "Create a new dashboard inside a business group.",
+			Description: "Save a dashboard in a writable business group, with metadata and optional panel configuration. Use clone_dashboard to copy a saved dashboard or update_dashboard_panels to replace the panels on an existing dashboard. Returns the created dashboard in result.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Dashboard",
 				ReadOnlyHint:    false,
@@ -189,8 +189,8 @@ func createDashboardTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group_id", "board"},
 				Properties: map[string]*jsonschema.Schema{
-					"group_id": {Type: "integer"},
-					"board":    {Type: "object", Description: "Board body (name, ident, tags, configs, ...)"},
+					"group_id": {Type: "integer", Description: "Positive business group ID from list_busi_groups."},
+					"board":    {Type: "object", Description: "Dashboard object with name and optional ident, tags and note as strings. Supply configs as a JSON-encoded string to save an initial panel configuration."},
 				},
 			},
 		},
@@ -221,7 +221,7 @@ func updateDashboardMetaTool(getClient client.GetClientFunc) toolset.ServerTool 
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "update_dashboard_meta",
-			Description: "Update a dashboard's name and tags (PUT /board/{bid}). Use update_dashboard_panels to change the panel JSON.",
+			Description: "Replace the stored name, identifier, tags and note of a dashboard. Use update_dashboard_panels to change saved panels or set_dashboard_public to change sharing. Requires write access to the owning group and returns the dashboard ID on success.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Dashboard Meta",
 				ReadOnlyHint:    false,
@@ -231,8 +231,8 @@ func updateDashboardMetaTool(getClient client.GetClientFunc) toolset.ServerTool 
 				Type:     "object",
 				Required: []string{"bid", "patch"},
 				Properties: map[string]*jsonschema.Schema{
-					"bid":   {Type: "integer"},
-					"patch": {Type: "object", Description: "Fields to update (name, tags, ident)"},
+					"bid":   {Type: "integer", Description: "Positive dashboard ID from list_dashboards."},
+					"patch": {Type: "object", Description: "Object with name, ident, tags and note as strings. Include values you want to keep because omitted fields are sent to storage as empty values."},
 				},
 			},
 		},
@@ -262,7 +262,7 @@ func updateDashboardPanelsTool(getClient client.GetClientFunc) toolset.ServerToo
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "update_dashboard_panels",
-			Description: "Replace a dashboard's panel JSON (PUT /board/{bid}/configs). 'configs' must be a JSON string.",
+			Description: "Overwrite the saved panel configuration for one dashboard. Read the current configs with get_dashboard before editing, and use update_dashboard_meta for name or tags. Requires write access to the owning group and returns the dashboard ID on success.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Dashboard Panels",
 				ReadOnlyHint:    false,
@@ -272,8 +272,8 @@ func updateDashboardPanelsTool(getClient client.GetClientFunc) toolset.ServerToo
 				Type:     "object",
 				Required: []string{"bid", "configs"},
 				Properties: map[string]*jsonschema.Schema{
-					"bid":     {Type: "integer"},
-					"configs": {Type: "string", Description: "Panel JSON as a string (n9e stores it as text)"},
+					"bid":     {Type: "integer", Description: "Positive dashboard ID from list_dashboards."},
+					"configs": {Type: "string", Description: "Complete replacement panel configuration as a JSON-encoded string, in the format of configs from get_dashboard."},
 				},
 			},
 		},
@@ -307,7 +307,7 @@ func setDashboardPublicTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "set_dashboard_public",
-			Description: "Toggle a dashboard's public visibility (PUT /board/{bid}/public).",
+			Description: "Change one dashboard's stored sharing and visibility settings. Use update_dashboard_meta for name or tags. This write returns the dashboard ID and requested public flag, and the tool supplies no business group sharing list.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Set Dashboard Public",
 				ReadOnlyHint:    false,
@@ -317,9 +317,9 @@ func setDashboardPublicTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"bid", "public"},
 				Properties: map[string]*jsonschema.Schema{
-					"bid":         {Type: "integer"},
-					"public":      {Type: "integer", Description: "0 = private, 1 = public"},
-					"public_cate": {Type: "integer", Description: "Visibility category (n9e enum)"},
+					"bid":         {Type: "integer", Description: "Positive dashboard ID from list_dashboards."},
+					"public":      {Type: "integer", Description: "Use 0 for private or 1 for public."},
+					"public_cate": {Type: "integer", Description: "Sharing audience. Use 0 for anonymous access (default), 1 for signed-in users or 2 for business groups. The tool has no input for the business group sharing list."},
 				},
 			},
 		},
@@ -353,7 +353,7 @@ func cloneDashboardTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "clone_dashboard",
-			Description: "Clone a dashboard into the same business group (POST /busi-group/{gid}/board/{bid}/clone).",
+			Description: "Save a copy of an existing dashboard and its panel payload in the source dashboard's business group. Use create_dashboard to start with new metadata and panels. Nightingale appends Cloned to the copy's name. Use list_dashboards to locate the copy after success.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Clone Dashboard",
 				ReadOnlyHint:    false,
@@ -363,8 +363,8 @@ func cloneDashboardTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"group_id", "bid"},
 				Properties: map[string]*jsonschema.Schema{
-					"group_id": {Type: "integer"},
-					"bid":      {Type: "integer"},
+					"group_id": {Type: "integer", Description: "Positive business group ID from list_busi_groups. Supply the source dashboard's owning group."},
+					"bid":      {Type: "integer", Description: "Positive dashboard ID from list_dashboards. Select the dashboard to copy."},
 				},
 			},
 		},
