@@ -27,38 +27,38 @@ type GetMuteInput struct {
 
 // CreateMuteInput represents create mute rule parameters
 type CreateMuteInput struct {
-	GroupId       int64               `json:"group_id"`
-	Note          string              `json:"note"`
-	Cate          string              `json:"cate,omitempty"`
-	Prod          string              `json:"prod,omitempty"`
-	DatasourceIds []int64             `json:"datasource_ids,omitempty"`
-	Cluster       string              `json:"cluster,omitempty"`
-	Tags          []types.TagFilter   `json:"tags,omitempty"`
-	Cause         string              `json:"cause"`
-	Btime         int64               `json:"btime"`
-	Etime         int64               `json:"etime"`
-	Severities    []int               `json:"severities,omitempty"`
-	Disabled      int                 `json:"disabled,omitempty"`
-	MuteTimeType  int                 `json:"mute_time_type,omitempty"`
+	GroupId       int64                `json:"group_id"`
+	Note          string               `json:"note"`
+	Cate          string               `json:"cate,omitempty"`
+	Prod          string               `json:"prod,omitempty"`
+	DatasourceIds []int64              `json:"datasource_ids,omitempty"`
+	Cluster       string               `json:"cluster,omitempty"`
+	Tags          []types.TagFilter    `json:"tags,omitempty"`
+	Cause         string               `json:"cause"`
+	Btime         int64                `json:"btime"`
+	Etime         int64                `json:"etime"`
+	Severities    []int                `json:"severities,omitempty"`
+	Disabled      int                  `json:"disabled,omitempty"`
+	MuteTimeType  int                  `json:"mute_time_type,omitempty"`
 	PeriodicMutes []types.PeriodicMute `json:"periodic_mutes,omitempty"`
 }
 
 // UpdateMuteInput represents update mute rule parameters
 type UpdateMuteInput struct {
-	GroupId       int64               `json:"group_id"`
-	MuteId        int64               `json:"mute_id"`
-	Note          string              `json:"note"`
-	Cate          string              `json:"cate,omitempty"`
-	Prod          string              `json:"prod,omitempty"`
-	DatasourceIds []int64             `json:"datasource_ids,omitempty"`
-	Cluster       string              `json:"cluster,omitempty"`
-	Tags          []types.TagFilter   `json:"tags,omitempty"`
-	Cause         string              `json:"cause"`
-	Btime         int64               `json:"btime"`
-	Etime         int64               `json:"etime"`
-	Severities    []int               `json:"severities,omitempty"`
-	Disabled      int                 `json:"disabled,omitempty"`
-	MuteTimeType  int                 `json:"mute_time_type,omitempty"`
+	GroupId       int64                `json:"group_id"`
+	MuteId        int64                `json:"mute_id"`
+	Note          string               `json:"note"`
+	Cate          string               `json:"cate,omitempty"`
+	Prod          string               `json:"prod,omitempty"`
+	DatasourceIds []int64              `json:"datasource_ids,omitempty"`
+	Cluster       string               `json:"cluster,omitempty"`
+	Tags          []types.TagFilter    `json:"tags,omitempty"`
+	Cause         string               `json:"cause"`
+	Btime         int64                `json:"btime"`
+	Etime         int64                `json:"etime"`
+	Severities    []int                `json:"severities,omitempty"`
+	Disabled      int                  `json:"disabled,omitempty"`
+	MuteTimeType  int                  `json:"mute_time_type,omitempty"`
 	PeriodicMutes []types.PeriodicMute `json:"periodic_mutes,omitempty"`
 }
 
@@ -83,7 +83,7 @@ func listMutesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_mutes",
-			Description: "List alert mutes/silences for a business group",
+			Description: "Find alert silences configured in one readable business group, including disabled or expired entries. Use get_mute to inspect a known mute or list_active_alerts to see firing events. This read-only lookup returns {list, total} with mute IDs, match criteria and schedules in descending ID order, paginated locally at 20 per page by default.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Alert Mutes",
 				ReadOnlyHint: true,
@@ -94,15 +94,15 @@ func listMutesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"group_id": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive business group ID from list_busi_groups.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -133,7 +133,7 @@ func getMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_mute",
-			Description: "Get details of a specific alert mute by ID",
+			Description: "Inspect the match criteria and schedule of one alert mute, including its tags, severities, reason and time windows. Use list_mutes to discover mute IDs within a business group. This read-only lookup requires the alert mutes permission and returns one mute object with its owning group and enabled state.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Alert Mute",
 				ReadOnlyHint: true,
@@ -144,11 +144,11 @@ func getMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"group_id": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive owning business group ID from list_busi_groups or the mute's group_id in list_mutes.",
 					},
 					"mute_id": {
 						Type:        "integer",
-						Description: "Alert mute ID",
+						Description: "Positive mute ID from list_mutes.",
 					},
 				},
 			},
@@ -181,7 +181,7 @@ func createMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "create_mute",
-			Description: "Create a new alert mute/silence rule. Use mute_time_type=0 for time range mode (btime/etime), or mute_time_type=1 for periodic mode (periodic_mutes).",
+			Description: "Save a silence for matching alerts in one business group. Use a fixed time range for one-off maintenance or periodic_mutes for a repeating schedule. Supply btime and etime in increasing order for server validation. Use update_mute for an existing silence. Returns the new mute ID.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Create Alert Mute",
 				ReadOnlyHint:    false,
@@ -193,75 +193,75 @@ func createMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"group_id": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive business group ID from list_busi_groups.",
 					},
 					"note": {
 						Type:        "string",
-						Description: "Note/title for the mute rule",
+						Description: "Optional short label for the mute.",
 					},
 					"cate": {
 						Type:        "string",
-						Description: "Category (e.g., prometheus, host, elasticsearch)",
+						Description: "Category stored on the mute, such as prometheus or elasticsearch.",
 					},
 					"prod": {
 						Type:        "string",
-						Description: "Product type (e.g., metric, host, loki)",
+						Description: "Product stored on the mute, such as metric, host or loki.",
 					},
 					"datasource_ids": {
 						Type:        "array",
-						Description: "Datasource IDs to match (empty means all)",
+						Description: "Array of datasource IDs from list_datasources. An empty array or an array containing 0 matches all datasources.",
 						Items:       &jsonschema.Schema{Type: "integer"},
 					},
 					"cluster": {
 						Type:        "string",
-						Description: "Cluster name filter",
+						Description: "Cluster name stored on the mute configuration.",
 					},
 					"tags": {
 						Type:        "array",
-						Description: "Tag filters. Each filter has key, func (==, !=, in, not in, =~, !~), and value",
+						Description: "Alert tag match conditions. Supply objects with key, func and value. Omit or pass an empty array for no tag conditions.",
 						Items: &jsonschema.Schema{
 							Type: "object",
 							Properties: map[string]*jsonschema.Schema{
-								"key":   {Type: "string", Description: "Tag key"},
-								"func":  {Type: "string", Description: "Operator: ==, !=, in, not in, =~, !~"},
-								"value": {Type: "string", Description: "Tag value (for 'in'/'not in', space-separated values)"},
+								"key":   {Type: "string", Description: "Nonempty tag key from an alert's tags_map."},
+								"func":  {Type: "string", Description: "Match operator. Use ==, !=, in, not in, =~ or !~."},
+								"value": {Type: "string", Description: "Comparison value. Use a regular expression for =~ or !~ and space-separated values for in or not in."},
 							},
 						},
 					},
 					"cause": {
 						Type:        "string",
-						Description: "Reason/description for the mute",
+						Description: "Required reason for the silence.",
 					},
 					"btime": {
 						Type:        "integer",
-						Description: "Start time Unix timestamp",
+						Description: "Start of the mute time range in Unix seconds. Set it before etime. Time range mode requires a positive value.",
 					},
 					"etime": {
 						Type:        "integer",
-						Description: "End time Unix timestamp",
+						Description: "End of the mute time range in Unix seconds. Set it after btime. Time range mode requires a positive value.",
 					},
 					"severities": {
 						Type:        "array",
-						Description: "Severity levels to match (1=critical, 2=warning, 3=info). Empty means all.",
+						Description: "Severity levels to match. Use 1 for critical, 2 for warning, 3 for info or 0 for all. An empty array also matches all severities.",
 						Items:       &jsonschema.Schema{Type: "integer"},
 					},
 					"disabled": {
 						Type:        "integer",
-						Description: "Disabled status (0=enabled, 1=disabled)",
+						Description: "Use 0 for enabled (default) or 1 for disabled.",
 					},
 					"mute_time_type": {
 						Type:        "integer",
-						Description: "Mute time type (0=time range, 1=periodic)",
+						Description: "Use 0 for a fixed time range (default) or 1 for a recurring schedule.",
 					},
 					"periodic_mutes": {
 						Type:        "array",
-						Description: "Periodic mute rules (when mute_time_type=1)",
+						Description: "Recurring windows evaluated when mute_time_type is 1. Each window specifies weekdays and local clock times.",
 						Items: &jsonschema.Schema{
 							Type: "object",
 							Properties: map[string]*jsonschema.Schema{
-								"enable_stime":        {Type: "string", Description: "Start time in HH:MM format"},
-								"enable_etime":        {Type: "string", Description: "End time in HH:MM format"},
-								"enable_days_of_week": {Type: "string", Description: "Days of week (0-6, space-separated, 0=Sunday)"},
+								"enable_stime":        {Type: "string", Description: "Start of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time."},
+								"enable_etime":        {Type: "string", Description: "End of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time. An earlier end crosses midnight."},
+								"enable_days_of_week": {Type: "string", Description: "Space-separated weekday numbers from 0 (Sunday) through 6 (Saturday)."},
 							},
 						},
 					},
@@ -324,7 +324,7 @@ func updateMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "update_mute",
-			Description: "Update an existing alert mute/silence rule",
+			Description: "Replace an existing silence's matching criteria and schedule. Read its current configuration with get_mute before submitting the replacement, and use create_mute to add a separate silence. Nightingale checks write access to the owning business group. Returns the updated mute ID.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:           "Update Alert Mute",
 				ReadOnlyHint:    false,
@@ -336,79 +336,79 @@ func updateMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"group_id": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive business group ID from list_busi_groups.",
 					},
 					"mute_id": {
 						Type:        "integer",
-						Description: "Alert mute ID to update",
+						Description: "Positive mute ID from list_mutes for the owning business group.",
 					},
 					"note": {
 						Type:        "string",
-						Description: "Note/title for the mute rule",
+						Description: "Optional short label for the mute.",
 					},
 					"cate": {
 						Type:        "string",
-						Description: "Category (e.g., prometheus, host, elasticsearch)",
+						Description: "Category stored on the mute, such as prometheus or elasticsearch.",
 					},
 					"prod": {
 						Type:        "string",
-						Description: "Product type (e.g., metric, host, loki)",
+						Description: "Product stored on the mute, such as metric, host or loki.",
 					},
 					"datasource_ids": {
 						Type:        "array",
-						Description: "Datasource IDs to match (empty means all)",
+						Description: "Array of datasource IDs from list_datasources. An empty array or an array containing 0 matches all datasources.",
 						Items:       &jsonschema.Schema{Type: "integer"},
 					},
 					"cluster": {
 						Type:        "string",
-						Description: "Cluster name filter",
+						Description: "Cluster name stored on the mute configuration.",
 					},
 					"tags": {
 						Type:        "array",
-						Description: "Tag filters. Each filter has key, func (==, !=, in, not in, =~, !~), and value",
+						Description: "Alert tag match conditions. Supply objects with key, func and value. Omit or pass an empty array for no tag conditions.",
 						Items: &jsonschema.Schema{
 							Type: "object",
 							Properties: map[string]*jsonschema.Schema{
-								"key":   {Type: "string", Description: "Tag key"},
-								"func":  {Type: "string", Description: "Operator: ==, !=, in, not in, =~, !~"},
-								"value": {Type: "string", Description: "Tag value (for 'in'/'not in', space-separated values)"},
+								"key":   {Type: "string", Description: "Nonempty tag key from an alert's tags_map."},
+								"func":  {Type: "string", Description: "Match operator. Use ==, !=, in, not in, =~ or !~."},
+								"value": {Type: "string", Description: "Comparison value. Use a regular expression for =~ or !~ and space-separated values for in or not in."},
 							},
 						},
 					},
 					"cause": {
 						Type:        "string",
-						Description: "Reason/description for the mute",
+						Description: "Required reason for the silence.",
 					},
 					"btime": {
 						Type:        "integer",
-						Description: "Start time Unix timestamp",
+						Description: "Start of the mute time range in Unix seconds. Set it before etime. Time range mode requires a positive value.",
 					},
 					"etime": {
 						Type:        "integer",
-						Description: "End time Unix timestamp",
+						Description: "End of the mute time range in Unix seconds. Set it after btime. Time range mode requires a positive value.",
 					},
 					"severities": {
 						Type:        "array",
-						Description: "Severity levels to match (1=critical, 2=warning, 3=info). Empty means all.",
+						Description: "Severity levels to match. Use 1 for critical, 2 for warning, 3 for info or 0 for all. An empty array also matches all severities.",
 						Items:       &jsonschema.Schema{Type: "integer"},
 					},
 					"disabled": {
 						Type:        "integer",
-						Description: "Disabled status (0=enabled, 1=disabled)",
+						Description: "Use 0 for enabled (default) or 1 for disabled.",
 					},
 					"mute_time_type": {
 						Type:        "integer",
-						Description: "Mute time type (0=time range, 1=periodic)",
+						Description: "Use 0 for a fixed time range (default) or 1 for a recurring schedule.",
 					},
 					"periodic_mutes": {
 						Type:        "array",
-						Description: "Periodic mute rules (when mute_time_type=1)",
+						Description: "Recurring windows evaluated when mute_time_type is 1. Each window specifies weekdays and local clock times.",
 						Items: &jsonschema.Schema{
 							Type: "object",
 							Properties: map[string]*jsonschema.Schema{
-								"enable_stime":        {Type: "string", Description: "Start time in HH:MM format"},
-								"enable_etime":        {Type: "string", Description: "End time in HH:MM format"},
-								"enable_days_of_week": {Type: "string", Description: "Days of week (0-6, space-separated, 0=Sunday)"},
+								"enable_stime":        {Type: "string", Description: "Start of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time."},
+								"enable_etime":        {Type: "string", Description: "End of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time. An earlier end crosses midnight."},
+								"enable_days_of_week": {Type: "string", Description: "Space-separated weekday numbers from 0 (Sunday) through 6 (Saturday)."},
 							},
 						},
 					},

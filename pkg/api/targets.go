@@ -38,7 +38,7 @@ func listTargetsTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_targets",
-			Description: "List monitored targets/hosts with optional filters",
+			Description: "Find registered monitoring targets by business group, host metadata or time since their last heartbeat. Use list_active_alerts to investigate firing incidents or query_instant to read a metric value. This read-only lookup returns {list, total} with target identifiers, tags and heartbeat status, ordered by ident ascending with 30 per page by default. Without a group filter, non-admin callers see their business groups and unassigned targets.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Targets",
 				ReadOnlyHint: true,
@@ -48,27 +48,27 @@ func listTargetsTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"gids": {
 						Type:        "string",
-						Description: "Business group IDs comma-separated",
+						Description: "Comma-separated business group IDs from list_busi_groups. Include 0 to match unassigned targets. Nightingale checks access to each positive group ID.",
 					},
 					"query": {
 						Type:        "string",
-						Description: "Search keyword (matches ident/tags)",
+						Description: "Space-separated terms matched against ident, host IP, note, tags, host tags or OS. Prefix a term with - to exclude matches.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Targets per page. Defaults to 30 when omitted or nonpositive.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 					"downtime": {
 						Type:        "integer",
-						Description: "Filter by downtime in seconds (targets not reporting for this duration)",
+						Description: "Positive threshold in seconds. Finds targets whose last heartbeat is older than the threshold. Omit or use 0 for no heartbeat filter. The tool omits negative values.",
 					},
 					"datasource_ids": {
 						Type:        "string",
-						Description: "Datasource IDs comma-separated",
+						Description: "Comma-separated datasource IDs from list_datasources. The tool forwards this parameter, but the Nightingale target list endpoint does not apply it.",
 					},
 				},
 			},

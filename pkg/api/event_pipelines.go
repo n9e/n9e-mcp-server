@@ -68,7 +68,7 @@ func listEventPipelinesTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_event_pipelines",
-			Description: "List all event pipelines/workflows that the current user has access to",
+			Description: "Discover team-scoped workflow definitions and obtain their IDs, trigger modes and enabled states. Use get_event_pipeline for a known definition or list_all_event_pipeline_executions for run history. This read-only lookup covers pipelines outside business groups and limits non-admin results to the caller's teams. It returns {list, total} in name order, paginated locally at 20 per page by default.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Event Pipelines",
 				ReadOnlyHint: true,
@@ -78,11 +78,11 @@ func listEventPipelinesTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -108,7 +108,7 @@ func getEventPipelineTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_event_pipeline",
-			Description: "Get details of a specific event pipeline/workflow by ID",
+			Description: "Inspect one event pipeline's workflow definition, including its trigger mode, filters, processors and configured nodes. Use list_event_pipelines to discover pipeline IDs or list_event_pipeline_executions to investigate actual runs. This read-only lookup returns one definition and enforces business group access for group-owned pipelines or team access for other pipelines.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Event Pipeline",
 				ReadOnlyHint: true,
@@ -119,7 +119,7 @@ func getEventPipelineTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"id": {
 						Type:        "integer",
-						Description: "Event pipeline ID",
+						Description: "Positive pipeline ID from list_event_pipelines.",
 					},
 				},
 			},
@@ -149,7 +149,7 @@ func listEventPipelineExecutionsTool(getClient client.GetClientFunc) toolset.Ser
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_event_pipeline_executions",
-			Description: "List execution records for a specific event pipeline",
+			Description: "Review execution history for one known event pipeline, optionally filtered by trigger mode and run status. Use list_all_event_pipeline_executions to search across pipelines or by pipeline name, and get_event_pipeline_execution to inspect one run. This read-only lookup requires the event pipelines permission and returns {list, total} with run IDs, statuses, durations and errors when recorded, newest first. Pages default to 20 and accept up to 1000 records.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Pipeline Executions",
 				ReadOnlyHint: true,
@@ -160,23 +160,23 @@ func listEventPipelineExecutionsTool(getClient client.GetClientFunc) toolset.Ser
 				Properties: map[string]*jsonschema.Schema{
 					"pipeline_id": {
 						Type:        "integer",
-						Description: "Event pipeline ID",
+						Description: "Positive pipeline ID from list_event_pipelines.",
 					},
 					"mode": {
 						Type:        "string",
-						Description: "Trigger mode filter (event/api/cron)",
+						Description: "Exact trigger mode. Use event for alert-triggered runs, api for API-triggered runs or cron for scheduled runs. Omit for all modes.",
 					},
 					"status": {
 						Type:        "string",
-						Description: "Status filter (running/success/failed)",
+						Description: "Exact execution status. Use running, success or failed. Omit for all statuses.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20, max 1000)",
+						Description: "Records per page, from 1 to 1000. Omitted or out-of-range values fall back to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -220,7 +220,7 @@ func listAllEventPipelineExecutionsTool(getClient client.GetClientFunc) toolset.
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_all_event_pipeline_executions",
-			Description: "List all event pipeline execution records across all pipelines",
+			Description: "Search execution records across event pipelines, including by pipeline name when the ID is unknown. Use list_event_pipeline_executions for the run history of one known pipeline or get_event_pipeline_execution to inspect a single run. This read-only lookup requires the event pipelines permission and returns {list, total} with execution IDs, pipeline names, statuses and durations, newest first. Pages default to 20 and accept up to 1000 records.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List All Pipeline Executions",
 				ReadOnlyHint: true,
@@ -230,27 +230,27 @@ func listAllEventPipelineExecutionsTool(getClient client.GetClientFunc) toolset.
 				Properties: map[string]*jsonschema.Schema{
 					"pipeline_id": {
 						Type:        "integer",
-						Description: "Filter by pipeline ID",
+						Description: "Positive pipeline ID from list_event_pipelines. Omit to search across pipeline IDs.",
 					},
 					"pipeline_name": {
 						Type:        "string",
-						Description: "Filter by pipeline name",
+						Description: "Substring of the pipeline name recorded at execution time. Omit for every name.",
 					},
 					"mode": {
 						Type:        "string",
-						Description: "Trigger mode filter (event/api/cron)",
+						Description: "Exact trigger mode. Use event for alert-triggered runs, api for API-triggered runs or cron for scheduled runs. Omit for all modes.",
 					},
 					"status": {
 						Type:        "string",
-						Description: "Status filter (running/success/failed)",
+						Description: "Exact execution status. Use running, success or failed. Omit for all statuses.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20, max 1000)",
+						Description: "Records per page, from 1 to 1000. Omitted or out-of-range values fall back to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -295,7 +295,7 @@ func getEventPipelineExecutionTool(getClient client.GetClientFunc) toolset.Serve
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_event_pipeline_execution",
-			Description: "Get details of a specific pipeline execution by execution ID",
+			Description: "Inspect one recorded pipeline run for troubleshooting, including its status, node results, error details and duration in milliseconds. Use list_event_pipeline_executions or list_all_event_pipeline_executions to find the run ID, or get_event_pipeline for its workflow definition. This read-only lookup requires the event pipelines permission and returns one execution object, with node results as a JSON string when recorded.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Pipeline Execution",
 				ReadOnlyHint: true,
@@ -306,7 +306,7 @@ func getEventPipelineExecutionTool(getClient client.GetClientFunc) toolset.Serve
 				Properties: map[string]*jsonschema.Schema{
 					"exec_id": {
 						Type:        "string",
-						Description: "Execution ID (UUID)",
+						Description: "Execution UUID from the id field returned by list_event_pipeline_executions or list_all_event_pipeline_executions.",
 					},
 				},
 			},

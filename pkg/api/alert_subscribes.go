@@ -49,7 +49,7 @@ func listAlertSubscribesTool(getClient client.GetClientFunc) toolset.ServerTool 
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_alert_subscribes",
-			Description: "List alert subscriptions for a business group",
+			Description: "Find alert subscriptions configured in one readable business group, including which alert rules or tags they match and how they change notification routing. Use list_alert_subscribes_by_gids for a cross-group search or get_alert_subscribe to inspect a known subscription ID. This read-only lookup returns {list, total} with subscription IDs and matching criteria in descending ID order, paginated locally at 20 per page by default.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Alert Subscriptions",
 				ReadOnlyHint: true,
@@ -60,15 +60,15 @@ func listAlertSubscribesTool(getClient client.GetClientFunc) toolset.ServerTool 
 				Properties: map[string]*jsonschema.Schema{
 					"group_id": {
 						Type:        "integer",
-						Description: "Business group ID",
+						Description: "Positive business group ID from list_busi_groups.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -99,7 +99,7 @@ func listAlertSubscribesByGidsTool(getClient client.GetClientFunc) toolset.Serve
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "list_alert_subscribes_by_gids",
-			Description: "List alert subscriptions across multiple business groups",
+			Description: "Compare alert subscriptions across multiple business groups or search the caller's default group scope without choosing IDs. Use list_alert_subscribes for one known group or get_alert_subscribe for one known subscription. Nightingale checks access to every requested group and defaults to all groups for admins or the caller's business groups otherwise. This read-only lookup returns {list, total} with subscription IDs, matching criteria and notification settings, paginated locally in descending ID order at 20 per page by default.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "List Alert Subscriptions By Group IDs",
 				ReadOnlyHint: true,
@@ -109,15 +109,15 @@ func listAlertSubscribesByGidsTool(getClient client.GetClientFunc) toolset.Serve
 				Properties: map[string]*jsonschema.Schema{
 					"gids": {
 						Type:        "string",
-						Description: "Business group IDs comma-separated (empty for all accessible groups)",
+						Description: "Comma-separated business group IDs from list_busi_groups. Omit for all groups as an admin or your own business groups otherwise.",
 					},
 					"limit": {
 						Type:        "integer",
-						Description: "Page size (default 20)",
+						Description: "Number of records per page. Defaults to 20.",
 					},
 					"p": {
 						Type:        "integer",
-						Description: "Page number (starts from 1)",
+						Description: "1-based page number. Defaults to 1.",
 					},
 				},
 			},
@@ -148,7 +148,7 @@ func getAlertSubscribeTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "get_alert_subscribe",
-			Description: "Get details of a specific alert subscription by ID",
+			Description: "Inspect how one alert subscription matches events and routes or overrides their notifications. Use list_alert_subscribes or list_alert_subscribes_by_gids to find its ID. This read-only lookup requires the alert subscriptions permission and returns one object with its match criteria, user groups and notification settings, or a not-found error.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "Get Alert Subscription",
 				ReadOnlyHint: true,
@@ -159,7 +159,7 @@ func getAlertSubscribeTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Properties: map[string]*jsonschema.Schema{
 					"sid": {
 						Type:        "integer",
-						Description: "Alert subscription ID",
+						Description: "Positive subscription ID from list_alert_subscribes or list_alert_subscribes_by_gids.",
 					},
 				},
 			},

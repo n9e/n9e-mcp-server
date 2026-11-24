@@ -62,7 +62,7 @@ func queryInstantTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "query_instant",
-			Description: "Run a PromQL instant query against a Prometheus-compatible datasource. Returns the result series array (each item: metric labels + [timestamp, value]).",
+			Description: "Evaluate a PromQL expression at a single timestamp on a Prometheus-compatible datasource for a snapshot or threshold check. Use query_range to see how values change over time. This read-only query defaults to now and returns the Prometheus result for that expression, typically labeled samples for an instant vector or a timestamp-value pair for a scalar.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "PromQL Instant Query",
 				ReadOnlyHint: true,
@@ -71,9 +71,9 @@ func queryInstantTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"ds_id", "query"},
 				Properties: map[string]*jsonschema.Schema{
-					"ds_id": {Type: "integer", Description: "Datasource ID"},
-					"query": {Type: "string", Description: "PromQL expression"},
-					"time":  {Type: "integer", Description: "Optional evaluation time (Unix seconds, default now)"},
+					"ds_id": {Type: "integer", Description: "Positive datasource ID from list_datasources. Select a Prometheus-compatible source."},
+					"query": {Type: "string", Description: "Nonempty PromQL expression to evaluate once, for example up or sum(up)."},
+					"time":  {Type: "integer", Description: "Evaluation timestamp in Unix seconds. Omit or use a nonpositive value to evaluate at the current time."},
 				},
 			},
 		},
@@ -125,7 +125,7 @@ func queryRangeTool(getClient client.GetClientFunc) toolset.ServerTool {
 	return toolset.NewServerTool(
 		mcp.Tool{
 			Name:        "query_range",
-			Description: "Run a PromQL range query against a Prometheus-compatible datasource. The 'step' is auto-adjusted upward when the result would exceed max_points (default 1000) per series, and 'truncated' is set in the response.",
+			Description: "Evaluate PromQL at regular intervals on a Prometheus-compatible datasource to chart a trend. Use query_instant for a single evaluation timestamp. The read-only result includes data with labeled series and timestamp-value samples, plus effective_step in seconds, max_points and truncated. The tool derives a step when omitted and sets truncated when it widens an explicitly requested step.",
 			Annotations: &mcp.ToolAnnotations{
 				Title:        "PromQL Range Query",
 				ReadOnlyHint: true,
@@ -134,12 +134,12 @@ func queryRangeTool(getClient client.GetClientFunc) toolset.ServerTool {
 				Type:     "object",
 				Required: []string{"ds_id", "query", "start", "end"},
 				Properties: map[string]*jsonschema.Schema{
-					"ds_id":      {Type: "integer", Description: "Datasource ID"},
-					"query":      {Type: "string", Description: "PromQL expression"},
-					"start":      {Type: "integer", Description: "Start time (Unix seconds)"},
-					"end":        {Type: "integer", Description: "End time (Unix seconds)"},
-					"step":       {Type: "integer", Description: "Resolution step in seconds (auto if omitted)"},
-					"max_points": {Type: "integer", Description: "Cap points per series (default 1000)"},
+					"ds_id":      {Type: "integer", Description: "Positive datasource ID from list_datasources. Select a Prometheus-compatible source."},
+					"query":      {Type: "string", Description: "Nonempty PromQL expression to evaluate at each step, for example rate(http_requests_total[5m])."},
+					"start":      {Type: "integer", Description: "Inclusive range start as a positive Unix timestamp in seconds."},
+					"end":        {Type: "integer", Description: "Inclusive range end as a positive Unix timestamp in seconds, later than start."},
+					"step":       {Type: "integer", Description: "Requested interval in whole seconds. If omitted or nonpositive, the tool derives it from the window and max_points, with a minimum of one second."},
+					"max_points": {Type: "integer", Description: "Target samples per series used to calculate the step. Defaults to 1000 when omitted or nonpositive."},
 				},
 			},
 		},
