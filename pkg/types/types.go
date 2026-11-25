@@ -433,9 +433,11 @@ type UserGroupDetail struct {
 
 // PeriodicMute represents periodic mute rule
 type PeriodicMute struct {
-	EnableStime      string `json:"enable_stime"`
-	EnableEtime      string `json:"enable_etime"`
-	EnableDaysOfWeek string `json:"enable_days_of_week"`
+	Cycle             string `json:"cycle,omitempty"` // "week" (default) or "month"
+	EnableStime       string `json:"enable_stime"`
+	EnableEtime       string `json:"enable_etime"`
+	EnableDaysOfWeek  string `json:"enable_days_of_week"`
+	EnableDaysOfMonth []int  `json:"enable_days_of_month,omitempty"` // 1-31, or -1 for the last day
 }
 
 // Board represents a dashboard. The panel JSON lives in Configs and can be very large;
