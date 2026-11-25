@@ -255,13 +255,15 @@ func createMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 					},
 					"periodic_mutes": {
 						Type:        "array",
-						Description: "Recurring windows evaluated when mute_time_type is 1. Each window specifies weekdays and local clock times.",
+						Description: "Recurring windows evaluated when mute_time_type is 1. Each window repeats weekly on chosen weekdays or monthly on chosen days of the month, between local clock times.",
 						Items: &jsonschema.Schema{
 							Type: "object",
 							Properties: map[string]*jsonschema.Schema{
-								"enable_stime":        {Type: "string", Description: "Start of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time."},
-								"enable_etime":        {Type: "string", Description: "End of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time. An earlier end crosses midnight."},
-								"enable_days_of_week": {Type: "string", Description: "Space-separated weekday numbers from 0 (Sunday) through 6 (Saturday)."},
+								"cycle":                {Type: "string", Enum: []any{"week", "month"}, Description: "Use week (default) to repeat on enable_days_of_week, or month to repeat on enable_days_of_month."},
+								"enable_stime":         {Type: "string", Description: "Start of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time."},
+								"enable_etime":         {Type: "string", Description: "End of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time. An earlier end crosses midnight for weekly windows; monthly windows must not cross midnight, so split them into two windows instead."},
+								"enable_days_of_week":  {Type: "string", Description: "Weekly windows only. Space-separated weekday numbers from 0 (Sunday) through 6 (Saturday)."},
+								"enable_days_of_month": {Type: "array", Items: &jsonschema.Schema{Type: "integer"}, Description: "Monthly windows only. Days of the month from 1 through 31, or -1 for the last day of every month. A day missing from a month, such as 31 in April, is skipped that month."},
 							},
 						},
 					},
@@ -402,13 +404,15 @@ func updateMuteTool(getClient client.GetClientFunc) toolset.ServerTool {
 					},
 					"periodic_mutes": {
 						Type:        "array",
-						Description: "Recurring windows evaluated when mute_time_type is 1. Each window specifies weekdays and local clock times.",
+						Description: "Recurring windows evaluated when mute_time_type is 1. Each window repeats weekly on chosen weekdays or monthly on chosen days of the month, between local clock times.",
 						Items: &jsonschema.Schema{
 							Type: "object",
 							Properties: map[string]*jsonschema.Schema{
-								"enable_stime":        {Type: "string", Description: "Start of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time."},
-								"enable_etime":        {Type: "string", Description: "End of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time. An earlier end crosses midnight."},
-								"enable_days_of_week": {Type: "string", Description: "Space-separated weekday numbers from 0 (Sunday) through 6 (Saturday)."},
+								"cycle":                {Type: "string", Enum: []any{"week", "month"}, Description: "Use week (default) to repeat on enable_days_of_week, or month to repeat on enable_days_of_month."},
+								"enable_stime":         {Type: "string", Description: "Start of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time."},
+								"enable_etime":         {Type: "string", Description: "End of the recurring window, in 24-hour HH:MM format in the Nightingale server's local time. An earlier end crosses midnight for weekly windows; monthly windows must not cross midnight, so split them into two windows instead."},
+								"enable_days_of_week":  {Type: "string", Description: "Weekly windows only. Space-separated weekday numbers from 0 (Sunday) through 6 (Saturday)."},
+								"enable_days_of_month": {Type: "array", Items: &jsonschema.Schema{Type: "integer"}, Description: "Monthly windows only. Days of the month from 1 through 31, or -1 for the last day of every month. A day missing from a month, such as 31 in April, is skipped that month."},
 							},
 						},
 					},
