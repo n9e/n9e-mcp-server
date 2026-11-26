@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/n9e/n9e-mcp-server/pkg/types"
@@ -110,7 +111,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 	}
 
 	// Build complete URL
-	fullURL := c.baseURL.ResolveReference(&url.URL{Path: path})
+	fullURL := c.resolvePath(path)
 	if params != nil {
 		fullURL.RawQuery = params.Encode()
 	}
@@ -131,6 +132,22 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 	}
 
 	return c.httpClient.Do(req)
+}
+
+func (c *Client) resolvePath(reqPath string) *url.URL {
+	fullURL := *c.baseURL
+	basePath := strings.TrimRight(fullURL.Path, "/")
+	reqPath = strings.TrimLeft(reqPath, "/")
+	if basePath == "" {
+		fullURL.Path = "/" + reqPath
+		return &fullURL
+	}
+	if reqPath == "" {
+		fullURL.Path = basePath
+		return &fullURL
+	}
+	fullURL.Path = basePath + "/" + reqPath
+	return &fullURL
 }
 
 // makeRequest is the request method with timeout and retry
